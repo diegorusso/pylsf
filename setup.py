@@ -53,7 +53,7 @@ library_dirs = [lsf_libdir, '/usr/lib64', '/usr/lib']
 extra_link_args = [ '']
 extra_objects = [ '']
 
-if lsf_major == 7:
+if lsf_major == 7 or lsf_major == 8:
   libraries = ['bat', 'lsf', 'lsbstream', 'nsl', 'dl', 'crypt' ]
 elif lsf_major == 6:
   libraries = ['bat','lsf','nsl']
