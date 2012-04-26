@@ -3,9 +3,9 @@
 PyLSF : Pyrex module for interfacing to Platform LSF 6.2
 
 """
-
+import os
 import string
-from sets import Set
+import itertools
 from os import getenv
 
 cdef extern from "string.h":
@@ -24,6 +24,8 @@ cdef extern from "stdio.h":
     ctypedef struct FILE
     FILE *fopen(char *filename, char *mode)
     int fclose(FILE *fp)
+    int fseek(FILE *stream, long offset, int whence)
+    int SEEK_END
 
 cdef extern from "Python.h":
     object PyCObject_FromVoidPtr(void* cobj, void (*destr)(void *))
@@ -130,6 +132,13 @@ cdef extern from "lsf/lsf.h":
        double  ru_nvcsw
        double  ru_nivcsw
        double  ru_exutime
+    
+    cdef struct hRusage:
+       char *name
+       int mem
+       int swap
+       int utime
+       int stime
 
     cdef struct lsfAcctRec:
        int pid
@@ -266,6 +275,11 @@ cdef extern from "lsf/lsbatch.h":
       char subFn[256]
       char execFn[256]
       int  options
+    
+    cdef struct submit_ext:
+      int num
+      int *keys
+      char **values
 
     cdef struct jobExternalMsgReply:
       long   jobId
@@ -869,6 +883,14 @@ cdef extern from "lsf/lsbatch.h":
       char   *postExecCmd
       int    runtimeEstimation
       char   *jgroup
+      int    options2
+      char   *requeueEValues
+      char   *notifyCmd
+      time_t lastResizeTime
+      char   *jobDescription
+      submit_ext *submitExt
+      int    numhRusages
+      hRusage *hostRusage
 
     cdef struct calendarLog:
       int    options
@@ -989,6 +1011,7 @@ cdef extern from "lsf/lsbatch.h":
       char   userName[60]
       int    options
       int    options2
+      int    options3
       int    numProcessors
       time_t submitTime
       time_t beginTime
@@ -1020,7 +1043,7 @@ cdef extern from "lsf/lsbatch.h":
       char   jobName[512]
       char   command[512]
       int    nxf
-      xFile  *xs
+      xFile  *xf
       char   *preExecCmd
       char   *mailUser
       char   *projectName
@@ -1075,14 +1098,14 @@ cdef extern from "lsf/lsbatch.h":
       int     chkpntPeriod
       char    *chkpntDir
       int     nxf
-      xFile *xf
+      xFile   *xf
       char    *jobFile
       char    *fromHost
       char    *cwd
       char    *preExecCmd
       char    *mailUser
       char    *projectName
-      int     niosPorts
+      int     niosPort
       int     maxNumProcessors
       char    *loginShell
       char    *schedHostType
@@ -1096,6 +1119,18 @@ cdef extern from "lsf/lsbatch.h":
       char    *jobGroup
       char    *sla
       char    *licenseProject
+      int     options3
+      int     delOptions3
+      char    *app
+      char    *apsString
+      char    *postExecCmd
+      int     runtimeEstimation
+      char    *requeueEValues
+      int     initChkpntPeriod
+      int     migThreshold
+      char    *notifyCmd
+      char    *jobDescription
+      submit_ext *submitExt
 
     cdef struct jobStartLog:
       int    jobId
@@ -1112,6 +1147,7 @@ cdef extern from "lsf/lsbatch.h":
       int    idx
       char   *additionalInfo
       int    duration4PreemptBackfill
+      int    jFlags2
 
     cdef struct jobStartAcceptLog:
       int    jobId
@@ -1147,6 +1183,8 @@ cdef extern from "lsf/lsbatch.h":
       int   exitStatus
       int    idx
       int    exitInfo
+      int   numhRusages
+      hRusage  *hostRusage
 
     cdef struct sbdJobStatusLog:
       int    jobId
@@ -4285,7 +4323,7 @@ cdef class lsb_geteventrec:
     """
     lsb_geteventrec : Returns event records
 
-    Parameters      : Event file
+    Parameters      : Event file, line number
 
     Returns         : A list of event records
 
@@ -4294,6 +4332,7 @@ cdef class lsb_geteventrec:
     cdef char *eventFile
     cdef FILE *fp
     cdef int lineNum
+    cdef int tail_file
 
     cdef eventRec *record
     cdef jobNewLog *newJob
@@ -4334,14 +4373,16 @@ cdef class lsb_geteventrec:
     cdef rsvFinishLog *rsvFinish
     cdef hgCtrlLog *hgCtrl
     cdef jobModLog *jobMod
+    cdef jobModLog *jobMod2
     cdef jgrpStatusLog *jgrpLog
     cdef jobAttrSetLog *jobAttrSet
     cdef sbdUnreportedStatusLog *sbdUnreportedStatus
     cdef cpuProfileLog *cpuProfile
     cdef dataLoggingLog *dataLogging
 
-    def __init__(self, event_file):
+    def __init__(self, event_file, tail_file=False):
         self.eventFile = event_file
+        self.tail_file = tail_file
         self.lineNum = 0
         self.record
         self.newJob
@@ -4352,15 +4393,15 @@ cdef class lsb_geteventrec:
 
     def __dealloc__(self):
         # Pyrex expects __dealloc__(), not __del__()
-
-        fclose(self.fp)
-
         # Whatever c_lsb_geteventrec() returns shouldn't be freed since it's
         # static, not malloc'd.
+        fclose(self.fp)
+        
 
     def __open(self):
         self.fp = fopen(self.eventFile,'r')
-        #self.record = c_lsb_geteventrec(self.fp, &self.lineNum)
+        if self.tail_file:
+            fseek(self.fp, 0L, SEEK_END)
 
     def __iter__(self):
         return self
@@ -4371,74 +4412,173 @@ cdef class lsb_geteventrec:
             raise StopIteration
         else:
             return a
-
+    
     def read(self):
-
         self.record = c_lsb_geteventrec(self.fp, &self.lineNum)
         if self.record != NULL:
            if self.record.type == 1: # EVENT_JOB_NEW
              self.newJob = &(self.record.eventLog.jobNewLog)
-             return [self.record.type,
-                     "JOB_NEW",
-                     self.record.version,
-                     self.record.eventTime,
-                     self.newJob.jobId,
-                     self.record.eventTime,
-                     self.newJob.userName,
-                     self.newJob.fromHost,
-                     self.newJob.queue,
-                     self.newJob.jobFile]
+             askedHosts = []
+             for i from 0 <= i < self.newJob.numAskedHosts:
+                askedHosts.append(self.newJob.askedHosts[i])
+             xf = []
+             for i from 0 <= i < self.newJob.nxf:
+                xf.append({'subFn':self.newJob.xf[i].subFn,
+                           'execFn':self.newJob.xf[i].execFn,
+                           'options':self.newJob.xf[i].options})
+             return {'type':                self.record.type,
+                     'eventType':           'JOB_NEW',
+                     'version':             self.record.version,
+                     'eventTime':           self.record.eventTime,
+                     'jobId':               self.newJob.jobId,
+                     'userId':              self.newJob.userId,
+                     'userName':            self.newJob.userName,    
+                     'options':             self.newJob.options,
+                     'options2':            self.newJob.options2,
+                     'options3':            self.newJob.options3,
+                     'numProcessors':       self.newJob.numProcessors, 
+                     'submitTime':          self.newJob.submitTime,
+                     'beginTime':           self.newJob.beginTime,
+                     'termTime':            self.newJob.termTime,
+                     'sigValue':            self.newJob.sigValue,
+                     'chkpntPeriod':        self.newJob.chkpntPeriod,
+                     'restartPid':          self.newJob.restartPid,
+                     'rlimits':             {'cpu':      self.newJob.rLimits[0],
+                                             'file':     self.newJob.rLimits[1],
+                                             'data':     self.newJob.rLimits[2],
+                                             'stack':    self.newJob.rLimits[3],
+                                             'core':     self.newJob.rLimits[4],
+                                             'mem':      self.newJob.rLimits[5],
+                                             'null_1':   self.newJob.rLimits[6],
+                                             'null_2':   self.newJob.rLimits[7],
+                                             'swap':     self.newJob.rLimits[8],
+                                             'run':      self.newJob.rLimits[9],
+                                             'process':  self.newJob.rLimits[10],
+                                             'thread':   self.newJob.rLimits[11]},
+                     'hostSpec':            self.newJob.hostSpec,
+                     'hostFactor':          self.newJob.hostFactor,
+                     'umask':               self.newJob.umask,
+                     'queue':               self.newJob.queue,
+                     'resReq':              self.newJob.resReq,
+                     'fromHost':            self.newJob.fromHost,
+                     'cwd':                 self.newJob.cwd,
+                     'chkpntDir':           self.newJob.chkpntDir,
+                     'inFile':              self.newJob.inFile,
+                     'outFile':             self.newJob.outFile,
+                     'errFile':             self.newJob.errFile,
+                     'inFileSpool':         self.newJob.inFileSpool,
+                     'commandSpool':        self.newJob.commandSpool,
+                     'jobSpoolDir':         self.newJob.jobSpoolDir,
+                     'subHomeDir':          self.newJob.subHomeDir,
+                     'jobFile':             self.newJob.jobFile,
+                     'numAskedHosts':       self.newJob.numAskedHosts,
+                     'askedHosts':          askedHosts,
+                     'dependCond':          self.newJob.dependCond,
+                     'timeEvent':           self.newJob.timeEvent,
+                     'jobName':             self.newJob.jobName,
+                     'command':             self.newJob.command,
+                     'nxf':                 self.newJob.nxf,
+                     'xf':                  xf,
+                     'preExecCmd':          self.newJob.preExecCmd,
+                     'mailUser':            self.newJob.mailUser,
+                     'projectName':         self.newJob.projectName,
+                     'niosPort':            self.newJob.niosPort,
+                     'maxNumProcessors':    self.newJob.maxNumProcessors,
+                     'schedHostType':       self.newJob.schedHostType,
+                     'loginShell':          self.newJob.loginShell,
+                     'userGroup':           self.newJob.userGroup,
+                     'exceptList':          self.newJob.exceptList,
+                     'idx':                 self.newJob.idx,
+                     'userPriority':        self.newJob.userPriority,
+                     'rsvId':               self.newJob.rsvId,
+                     'jobGroup':            self.newJob.jobGroup,
+                     'extsched':            self.newJob.extsched,
+                     'warningTimePeriod':   self.newJob.warningTimePeriod,
+                     'warningAction':       self.newJob.warningAction,
+                     'sla':                 self.newJob.sla,
+                     'SLArunLimit':         self.newJob.SLArunLimit,
+                     'licenseProject':      self.newJob.licenseProject}
            elif self.record.type == 2: # EVENT_JOB_START
              self.startJob = &(self.record.eventLog.jobStartLog)
-             hosts = []
+             execHosts = []
              for i from 0 <= i < self.startJob.numExHosts:
-                hosts.append(self.startJob.execHosts[i])
-             return [self.record.type,
-                     "JOB_START",
-                     self.record.version,
-                     self.record.eventTime,
-                     self.startJob.jobId,
-                     self.record.eventTime,
-                     self.startJob.jobPid,
-                     self.startJob.jobPGid,
-                     self.startJob.hostFactor,
-                     hosts,
-                     self.startJob.queuePreCmd,
-                     self.startJob.queuePostCmd,
-                     self.startJob.jFlags,
-                     self.startJob.userGroup,
-                     self.startJob.idx,
-                     self.startJob.additionalInfo,
-                     self.startJob.duration4PreemptBackfill]
+                execHosts.append(self.startJob.execHosts[i])
+             return {'type':                     self.record.type,
+                     'eventType':                'JOB_START',
+                     'version':                  self.record.version,
+                     'eventTime':                self.record.eventTime,
+                     'jobId':                    self.startJob.jobId,
+                     'jStatus':                  self.startJob.jStatus,
+                     'jobPid':                   self.startJob.jobPid,
+                     'jobPGid':                  self.startJob.jobPGid,
+                     'hostFactor':               self.startJob.hostFactor,
+                     'numExHosts':               self.startJob.numExHosts,
+                     'execHosts':                hosts,
+                     'queuePreCmd':              self.startJob.queuePreCmd,
+                     'queuePostCmd':             self.startJob.queuePostCmd,
+                     'jFlags':                   self.startJob.jFlags,
+                     'userGroup':                self.startJob.userGroup,
+                     'idx':                      self.startJob.idx,
+                     'additionalInfo':           self.startJob.additionalInfo,
+                     'duration4PreemptBackfill': self.startJob.duration4PreemptBackfill,
+                     'jFlags2':                  self.startJob.jFlags2,}
            elif self.record.type == 3: # EVENT_JOB_STATUS
              self.statusJob = &(self.record.eventLog.jobStatusLog)
-             return [self.record.type,
-                     "JOB_STATUS",
-                     self.record.version,
-                     self.record.eventTime,
-                     self.statusJob.jobId,
-                     self.record.eventTime,
-                     self.statusJob.jStatus,
-                     self.statusJob.reason,
-                     self.statusJob.subreasons,
-                     self.statusJob.cpuTime,
-                     self.statusJob.endTime,
-                     self.statusJob.ru,
-                     self.statusJob.jFlags,
-                     self.statusJob.exitStatus,
-                     self.statusJob.idx,
-                     self.statusJob.exitInfo]
+             hostRusage = []
+             for i from 0 <= i < self.statusJob.numhRusages:
+                d = {'name':  self.statusJob.hostRusage[i].name,
+                     'mem':   self.statusJob.hostRusage[i].mem,
+                     'swap':  self.statusJob.hostRusage[i].swap,
+                     'utime': self.statusJob.hostRusage[i].utime,
+                     'stime': self.statusJob.hostRusage[i].stime}
+                hostRusage.append(d)
+             return {'type':              self.record.type,
+                     'eventType':         'JOB_STATUS',
+                     'version':           self.record.version,
+                     'eventTime':         self.record.eventTime,
+                     'jobId':             self.statusJob.jobId,
+                     'jStatus':           self.statusJob.jStatus,
+                     'reason':            self.statusJob.reason,
+                     'subreasons':        self.statusJob.subreasons,
+                     'cpuTime':           self.statusJob.cpuTime,
+                     'endTime':           self.statusJob.endTime,
+                     'ru':                self.statusJob.ru,
+                     'lsfRusage':         {'ru_utime':            self.statusJob.lsfRusage.ru_utime,
+                                           'ru_stime':            self.statusJob.lsfRusage.ru_stime,
+                                           'ru_maxrss':           self.statusJob.lsfRusage.ru_maxrss,
+                                           'ru_ixrss':            self.statusJob.lsfRusage.ru_ixrss,
+                                           'ru_ismrss':           self.statusJob.lsfRusage.ru_ismrss,
+                                           'ru_idrss':            self.statusJob.lsfRusage.ru_idrss,
+                                           'ru_isrss':            self.statusJob.lsfRusage.ru_isrss,
+                                           'ru_minflt':           self.statusJob.lsfRusage.ru_minflt,
+                                           'ru_majflt':           self.statusJob.lsfRusage.ru_majflt,
+                                           'ru_nswap':            self.statusJob.lsfRusage.ru_nswap,
+                                           'ru_inblock':          self.statusJob.lsfRusage.ru_inblock,
+                                           'ru_oublock':          self.statusJob.lsfRusage.ru_oublock,
+                                           'ru_ioch':             self.statusJob.lsfRusage.ru_ioch,
+                                           'ru_msgsnd':           self.statusJob.lsfRusage.ru_msgsnd,
+                                           'ru_msgrcv':           self.statusJob.lsfRusage.ru_msgrcv,
+                                           'ru_nsignals':         self.statusJob.lsfRusage.ru_nsignals,
+                                           'ru_nvcsw':            self.statusJob.lsfRusage.ru_nvcsw,
+                                           'ru_nivcsw':           self.statusJob.lsfRusage.ru_nivcsw,
+                                           'ru_exutime':          self.statusJob.lsfRusage.ru_exutime},
+                     'jFlags':            self.statusJob.jFlags,
+                     'exitStatus':        self.statusJob.exitStatus,
+                     'idx':               self.statusJob.idx,
+                     'exitInfo':          self.statusJob.exitInfo,
+                     'numhRusages':       self.statusJob.numhRusages,
+                     'hostRusage':        hostRusage}
            elif self.record.type == 4: # EVENT_JOB_SWITCH
              self.switchJob = &(self.record.eventLog.jobSwitchLog)
-             return [self.record.type,
-                     "JOB_SWITCH",
-                     self.record.version,
-                     self.record.eventTime,
-                     self.switchJob.jobId,
-                     self.switchJob.userId,
-                     self.switchJob.queue,
-                     self.switchJob.idx,
-                     self.switchJob.userName]
+             return {'type':                self.record.type,
+                     'eventType':           'JOB_SWITCH',
+                     'version':             self.record.version,
+                     'eventTime':           self.record.eventTime,
+                     'jobId':               self.switchJob.jobId,
+                     'userId':              self.switchJob.userId,
+                     'userName':            self.switchJob.userName,
+                     'idx':                 self.switchJob.idx,
+                     'queue':               self.switchJob.queue}
            elif self.record.type == 5: # EVENT_JOB_MOVE
              self.moveJob = &(self.record.eventLog.jobMoveLog)
              return [self.record.type,
@@ -4506,83 +4646,97 @@ cdef class lsb_geteventrec:
              execHosts = []
              for i from 0 <= i < self.finishJob.numExHosts:
                 execHosts.append(self.finishJob.execHosts[i])
-
-             return {'type':              self.record.type,
-                     'eventType':         'JOB_FINISH',
-                     'version':           self.record.version,
-                     'eventTime':         self.record.eventTime,
-                     'jobId':             self.finishJob.jobId,
-                     'userId':            self.finishJob.userId,
-                     'userName':          self.finishJob.userName,
-                     'options':           self.finishJob.options,
-                     'numProcessors':     self.finishJob.numProcessors,
-                     'jStatus':           self.finishJob.jStatus,
-                     'submitTime':        self.finishJob.submitTime,
-                     'beginTime':         self.finishJob.beginTime,
-                     'termTime':          self.finishJob.termTime,
-                     'startTime':         self.finishJob.startTime,
-                     'endTime':           self.finishJob.endTime,
-                     'queue':             self.finishJob.queue,
-                     'resReq':            self.finishJob.resReq,
-                     'fromHost':          self.finishJob.fromHost,
-                     'cwd':               self.finishJob.cwd,
-                     'inFile':            self.finishJob.inFile,
-                     'outFile':           self.finishJob.outFile,
-                     'errFile':           self.finishJob.errFile,
-                     'inFileSpool':       self.finishJob.inFileSpool,
-                     'commandSpool':      self.finishJob.commandSpool,
-                     'jobFile':           self.finishJob.jobFile,
-                     'numAskedHosts':     self.finishJob.numAskedHosts,
-                     'askedHosts':        askedHosts,
-                     'hostFactor':        self.finishJob.hostFactor,
-                     'numExHosts':        self.finishJob.numExHosts,
-                     'execHosts':         execHosts,
-                     'cpuTime':           self.finishJob.cpuTime,
-                     'jobName':           self.finishJob.jobName,
-                     'command':           self.finishJob.command,
-                     'ru_utime':          self.finishJob.lsfRusage.ru_utime,
-                     'ru_stime':          self.finishJob.lsfRusage.ru_stime,
-                     'ru_maxrss':         self.finishJob.lsfRusage.ru_maxrss,
-                     'ru_ixrss':          self.finishJob.lsfRusage.ru_ixrss,
-                     'ru_ismrss':         self.finishJob.lsfRusage.ru_ismrss,
-                     'ru_idrss':          self.finishJob.lsfRusage.ru_idrss,
-                     'ru_isrss':          self.finishJob.lsfRusage.ru_isrss,
-                     'ru_minflt':         self.finishJob.lsfRusage.ru_minflt,
-                     'ru_majflt':         self.finishJob.lsfRusage.ru_majflt,
-                     'ru_nswap':          self.finishJob.lsfRusage.ru_nswap,
-                     'ru_inblock':        self.finishJob.lsfRusage.ru_inblock,
-                     'ru_oublock':        self.finishJob.lsfRusage.ru_oublock,
-                     'ru_ioch':           self.finishJob.lsfRusage.ru_ioch,
-                     'ru_msgsnd':         self.finishJob.lsfRusage.ru_msgsnd,
-                     'ru_msgrcv':         self.finishJob.lsfRusage.ru_msgrcv,
-                     'ru_nsignals':       self.finishJob.lsfRusage.ru_nsignals,
-                     'ru_nvcsw':          self.finishJob.lsfRusage.ru_nvcsw,
-                     'ru_nivcsw':         self.finishJob.lsfRusage.ru_nivcsw,
-                     'ru_exutime':        self.finishJob.lsfRusage.ru_exutime,
-                     'dependCond':        self.finishJob.dependCond,
-                     'timeEvent':         self.finishJob.timeEvent,
-                     'preExecCmd':        self.finishJob.preExecCmd,
-                     'mailUser':          self.finishJob.mailUser,
-                     'projectName':       self.finishJob.projectName,
-                     'exitStatus':        self.finishJob.exitStatus,
-                     'maxNumProcessors':  self.finishJob.maxNumProcessors,
-                     'loginShell':        self.finishJob.loginShell,
-                     'idx':               self.finishJob.idx,
-                     'maxRMem':           self.finishJob.maxRMem,
-                     'maxRSwap':          self.finishJob.maxRSwap,
-                     'rsvId':             self.finishJob.rsvId,
-                     'sla':               self.finishJob.sla,
-                     'exceptMask':        self.finishJob.exceptMask,
-                     'additionalInfo':    self.finishJob.additionalInfo,
-                     'exitInfo':          self.finishJob.exitInfo,
-                     'warningTimePeriod': self.finishJob.warningTimePeriod,
-                     'warningAction':     self.finishJob.warningAction,
-                     'chargedSAAP':       self.finishJob.chargedSAAP,
-                     'licenseProject':    self.finishJob.licenseProject,
-                     'app':               self.finishJob.app,
-                     'postExecCmd':       self.finishJob.postExecCmd,
-                     'runtimeEstimation': self.finishJob.runtimeEstimation,
-                     'jgroup':            self.finishJob.jgroup}
+             hostRusage = []
+             for i from 0 <= i < self.finishJob.numhRusages:
+                d = {'name':  self.finishJob.hostRusage[i].name,
+                     'mem':   self.finishJob.hostRusage[i].mem,
+                     'swap':  self.finishJob.hostRusage[i].swap,
+                     'utime': self.finishJob.hostRusage[i].utime,
+                     'stime': self.finishJob.hostRusage[i].stime}
+                hostRusage.append(d)
+             return {'type':                self.record.type,
+                     'eventType':           'JOB_FINISH',
+                     'version':             self.record.version,
+                     'eventTime':           self.record.eventTime,
+                     'jobId':               self.finishJob.jobId,
+                     'userId':              self.finishJob.userId,
+                     'userName':            self.finishJob.userName,
+                     'options':             self.finishJob.options,
+                     'numProcessors':       self.finishJob.numProcessors,
+                     'jStatus':             self.finishJob.jStatus,
+                     'submitTime':          self.finishJob.submitTime,
+                     'beginTime':           self.finishJob.beginTime,
+                     'termTime':            self.finishJob.termTime,
+                     'startTime':           self.finishJob.startTime,
+                     'endTime':             self.finishJob.endTime,
+                     'queue':               self.finishJob.queue,
+                     'resReq':              self.finishJob.resReq,
+                     'fromHost':            self.finishJob.fromHost,
+                     'cwd':                 self.finishJob.cwd,
+                     'inFile':              self.finishJob.inFile,
+                     'outFile':             self.finishJob.outFile,
+                     'errFile':             self.finishJob.errFile,
+                     'inFileSpool':         self.finishJob.inFileSpool,
+                     'commandSpool':        self.finishJob.commandSpool,
+                     'jobFile':             self.finishJob.jobFile,
+                     'numAskedHosts':       self.finishJob.numAskedHosts,
+                     'askedHosts':          askedHosts,
+                     'hostFactor':          self.finishJob.hostFactor,
+                     'numExHosts':          self.finishJob.numExHosts,
+                     'execHosts':           execHosts,
+                     'cpuTime':             self.finishJob.cpuTime,
+                     'jobName':             self.finishJob.jobName,
+                     'command':             self.finishJob.command,
+                     'lsfRusage':           {'ru_utime':            self.finishJob.lsfRusage.ru_utime,
+                                             'ru_stime':            self.finishJob.lsfRusage.ru_stime,
+                                             'ru_maxrss':           self.finishJob.lsfRusage.ru_maxrss,
+                                             'ru_ixrss':            self.finishJob.lsfRusage.ru_ixrss,
+                                             'ru_ismrss':           self.finishJob.lsfRusage.ru_ismrss,
+                                             'ru_idrss':            self.finishJob.lsfRusage.ru_idrss,
+                                             'ru_isrss':            self.finishJob.lsfRusage.ru_isrss,
+                                             'ru_minflt':           self.finishJob.lsfRusage.ru_minflt,
+                                             'ru_majflt':           self.finishJob.lsfRusage.ru_majflt,
+                                             'ru_nswap':            self.finishJob.lsfRusage.ru_nswap,
+                                             'ru_inblock':          self.finishJob.lsfRusage.ru_inblock,
+                                             'ru_oublock':          self.finishJob.lsfRusage.ru_oublock,
+                                             'ru_ioch':             self.finishJob.lsfRusage.ru_ioch,
+                                             'ru_msgsnd':           self.finishJob.lsfRusage.ru_msgsnd,
+                                             'ru_msgrcv':           self.finishJob.lsfRusage.ru_msgrcv,
+                                             'ru_nsignals':         self.finishJob.lsfRusage.ru_nsignals,
+                                             'ru_nvcsw':            self.finishJob.lsfRusage.ru_nvcsw,
+                                             'ru_nivcsw':           self.finishJob.lsfRusage.ru_nivcsw,
+                                             'ru_exutime':          self.finishJob.lsfRusage.ru_exutime},
+                     'dependCond':          self.finishJob.dependCond,
+                     'timeEvent':           self.finishJob.timeEvent,
+                     'preExecCmd':          self.finishJob.preExecCmd,
+                     'mailUser':            self.finishJob.mailUser,
+                     'projectName':         self.finishJob.projectName,
+                     'exitStatus':          self.finishJob.exitStatus,
+                     'maxNumProcessors':    self.finishJob.maxNumProcessors,
+                     'loginShell':          self.finishJob.loginShell,
+                     'idx':                 self.finishJob.idx,
+                     'maxRMem':             self.finishJob.maxRMem,
+                     'maxRSwap':            self.finishJob.maxRSwap,
+                     'rsvId':               self.finishJob.rsvId,
+                     'sla':                 self.finishJob.sla,
+                     'exceptMask':          self.finishJob.exceptMask,
+                     'additionalInfo':      self.finishJob.additionalInfo,
+                     'exitInfo':            self.finishJob.exitInfo,
+                     'warningTimePeriod':   self.finishJob.warningTimePeriod,
+                     'warningAction':       self.finishJob.warningAction,
+                     'chargedSAAP':         self.finishJob.chargedSAAP,
+                     'licenseProject':      self.finishJob.licenseProject,
+                     'app':                 self.finishJob.app,
+                     'postExecCmd':         self.finishJob.postExecCmd,
+                     'runtimeEstimation':   self.finishJob.runtimeEstimation,
+                     'jgroup':              self.finishJob.jgroup,
+                     'options2':            self.finishJob.options2,
+                     'requeueEValues':      self.finishJob.requeueEValues,
+                     'notifyCmd':           self.finishJob.notifyCmd,
+                     'lastResizeTime':      self.finishJob.lastResizeTime,
+                     'jobDescription':      self.finishJob.jobDescription,
+                     'numhRusages':         self.finishJob.numhRusages,
+                     'hostRusage':          hostRusage}
            elif self.record.type == 11: # EVENT_LOAD_EXEC
              return [self.record.type,
                      "LOAD_EXEC"]
@@ -4633,16 +4787,16 @@ cdef class lsb_geteventrec:
                      "JOB_MODIFY"]
            elif self.record.type == 18: # EVENT_JOB_SIGNAL
              self.signalJob = &(self.record.eventLog.signalLog)
-             return [self.record.type,
-                     "JOB_SIGNAL",
-                     self.record.version,
-                     self.record.eventTime,
-                     self.signalJob.userId,
-                     self.signalJob.jobId,
-                     self.signalJob.signalSymbol,
-                     self.signalJob.runCount,
-                     self.signalJob.idx,
-                     self.signalJob.userName]
+             return {'type':            self.record.type,
+                     'eventType':       'JOB_SIGNAL',
+                     'version':         self.record.version,
+                     'eventTime':       self.record.eventTime,
+                     'jobId':           self.signalJob.jobId,
+                     'userId':          self.signalJob.userId,
+                     'signalSymbol':    self.signalJob.signalSymbol,
+                     'runCount':        self.signalJob.runCount,
+                     'idx':             self.signalJob.idx,
+                     'userName':        self.signalJob.userName}
            elif self.record.type == 19: # EVENT_CAL_NEW
              self.calendarLog = &(self.record.eventLog.calendarLog)
              return [self.record.type,
@@ -4759,12 +4913,12 @@ cdef class lsb_geteventrec:
                      self.jobMsgAck.idx]
            elif self.record.type == 28: # EVENT_JOB_REQUEUE
              self.requeueJob = &(self.record.eventLog.jobRequeueLog)
-             return [self.record.type,
-                     "JOB_REQUEUE",
-                     self.record.version,
-                     self.record.eventTime,
-                     self.requeueJob.jobId,
-                     self.requeueJob.idx]
+             return {'type':            self.record.type,
+                     'eventType':       'JOB_REQUEUE',
+                     'version':         self.record.version,
+                     'eventTime':       self.record.eventTime,
+                     'jobId':           self.requeueJob.jobId,
+                     'idx':             self.requeueJob.idx}
            elif self.record.type == 29: # EVENT_JOB_OCCUPY_REQ
              self.jobOccupyReq = &(self.record.eventLog.jobOccupyReqLog)
              return [self.record.type,
@@ -4845,12 +4999,12 @@ cdef class lsb_geteventrec:
                      self.calendarLog.calExpr]
            elif self.record.type == 37: # EVENT_JOB_CLEAN
              self.cleanJob = &(self.record.eventLog.jobCleanLog)
-             return [self.record.type,
-                     "JOB_CLEAN",
-                     self.record.version,
-                     self.record.eventTime,
-                     self.cleanJob.jobId,
-                     self.cleanJob.idx]
+             return {'type':            self.record.type,
+                     'eventType':       'JOB_CLEAN',
+                     'version':         self.record.version,
+                     'eventTime':       self.record.eventTime,
+                     'jobId':           self.cleanJob.jobId,
+                     'idx':             self.cleanJob.idx}
            elif self.record.type == 38: # EVENT_JOB_EXCEPTION
              self.exceptionJob = &(self.record.eventLog.jobExceptionLog)
              return [self.record.type,
@@ -4911,6 +5065,8 @@ cdef class lsb_geteventrec:
              exHosts = []
              for i from 0 <= i < self.jobForceRequest.numExecHosts:
                 exHosts.append(self.jobForceRequest.execHosts[i])
+             if self.jobForceRequest.queue:
+                 queue = self.jobForceRequest.queue
              return [self.record.type,
                      "JOB_FORCE",
                      self.record.version,
@@ -4921,17 +5077,125 @@ cdef class lsb_geteventrec:
                      self.jobForceRequest.idx,
                      self.jobForceRequest.options,
                      self.jobForceRequest.userName,
-                     self.jobForceRequest.queue]
+                     queue]
            elif self.record.type == 43: # EVENT_LOG_SWITCH
              self.logSwitch = &(self.record.eventLog.logSwitchLog)
              return [self.record.type,
                      "LOG_SWITCH",
                      self.record.version,
                      self.record.eventTime,
-                     logSwitch.lastJobId]
+                     self.logSwitch.lastJobId]
            elif self.record.type == 44: # EVENT_JOB_MODIFY2
-             return [self.record.type,
-                     "JOB_MODIFY2"]
+             self.jobMod2 = &(self.record.eventLog.jobModLog)
+             askedHosts = []
+             for i from 0 <= i < self.jobMod2.numAskedHosts:
+                askedHosts.append(self.jobMod2.askedHosts[i])
+             xf = []
+             for i from 0 <= i < self.jobMod2.nxf:
+                xf.append({'subFn':self.jobMod2.xf[i].subFn,
+                           'execFn':self.jobMod2.xf[i].execFn,
+                           'options':self.jobMod2.xf[i].options})
+             if self.jobMod2.jobName: jobName = self.jobMod2.jobName
+             if self.jobMod2.queue: queue = self.jobMod2.queue
+             if self.jobMod2.resReq: resReq = self.jobMod2.resReq
+             if self.jobMod2.hostSpec: hostSpec = self.jobMod2.hostSpec
+             if self.jobMod2.dependCond: dependCond = self.jobMod2.dependCond
+             if self.jobMod2.timeEvent: timeEvent = self.jobMod2.timeEvent
+             if self.jobMod2.inFile: inFile = self.jobMod2.inFile
+             if self.jobMod2.outFile: outFile = self.jobMod2.outFile
+             if self.jobMod2.errFile: errFile = self.jobMod2.errFile
+             if self.jobMod2.command: command = self.jobMod2.command
+             if self.jobMod2.inFileSpool: inFileSpool = self.jobMod2.inFileSpool
+             if self.jobMod2.commandSpool: commandSpool = self.jobMod2.commandSpool
+             if self.jobMod2.chkpntPeriod: chkpntPeriod = self.jobMod2.chkpntPeriod
+             if self.jobMod2.chkpntDir: chkpntDir = self.jobMod2.chkpntDir
+             if self.jobMod2.preExecCmd: preExecCmd = self.jobMod2.preExecCmd
+             if self.jobMod2.mailUser: mailUser = self.jobMod2.mailUser
+             if self.jobMod2.projectName: projectName = self.jobMod2.projectName
+             if self.jobMod2.loginShell: loginShell = self.jobMod2.loginShell
+             if self.jobMod2.userGroup: userGroup = self.jobMod2.userGroup
+             if self.jobMod2.exceptList: exceptList = self.jobMod2.exceptList
+             if self.jobMod2.userPriority: userPriority = self.jobMod2.userPriority
+             return {'type':            self.record.type,
+                   'eventType':         'JOB_MODIFY2',
+                   'version':           self.record.version,
+                   'eventTime':         self.record.eventTime,
+                   'jobIdStr':          self.jobMod2.jobIdStr,
+                   'options':           self.jobMod2.options,
+                   'options2':          self.jobMod2.options2,        
+                   'delOptions':        self.jobMod2.delOptions,
+                   'delOptions2':       self.jobMod2.delOptions2,
+                   'userId':            self.jobMod2.userId,
+                   'userName':          self.jobMod2.userName,
+                   'submitTime':        self.jobMod2.submitTime,
+                   'umask':             self.jobMod2.umask,
+                   'numProcessors':     self.jobMod2.numProcessors,
+                   'beginTime':         self.jobMod2.beginTime,       
+                   'termTime':          self.jobMod2.termTime,        
+                   'sigValue':          self.jobMod2.sigValue,
+                   'restartPid':        self.jobMod2.restartPid,        
+                   'jobName':           jobName,        
+                   'queue':             queue,       
+                   'numAskedHosts':     self.jobMod2.numAskedHosts,        
+                   'askedHosts':        askedHosts,      
+                   'resReq':            resReq,       
+                   'rlimits':           {'cpu':      self.jobMod2.rLimits[0],
+                                         'file':     self.jobMod2.rLimits[1],
+                                         'data':     self.jobMod2.rLimits[2],
+                                         'stack':    self.jobMod2.rLimits[3],
+                                         'core':     self.jobMod2.rLimits[4],
+                                         'mem':      self.jobMod2.rLimits[5],
+                                         'null_1':   self.jobMod2.rLimits[6],
+                                         'null_2':   self.jobMod2.rLimits[7],
+                                         'swap':     self.jobMod2.rLimits[8],
+                                         'run':      self.jobMod2.rLimits[9],
+                                         'process':  self.jobMod2.rLimits[10],
+                                         'thread':   self.jobMod2.rLimits[11]},
+                   'hostSpec':          hostSpec,       
+                   'dependCond':        dependCond,       
+                   'timeEvent':         timeEvent,       
+                   'subHomeDir':        self.jobMod2.subHomeDir,       
+                   'inFile':            inFile,       
+                   'outFile':           outFile,      
+                   'errFile':           errFile,       
+                   'command':           command,       
+                   'inFileSpool':       inFileSpool,       
+                   'commandSpool':      commandSpool,       
+                   'chkpntPeriod':      chkpntPeriod,        
+                   'chkpntDir':         chkpntDir,       
+                   'nxf':               self.jobMod2.nxf,        
+                   'xf':                xf,       
+                   'jobFile':           self.jobMod2.jobFile,       
+                   'fromHost':          self.jobMod2.fromHost,       
+                   'cwd':               self.jobMod2.cwd,       
+                   'preExecCmd':        preExecCmd,       
+                   'mailUser':          mailUser,       
+                   'projectName':       projectName,       
+                   'niosPort':          self.jobMod2.niosPort,       
+                   'maxNumProcessors':  self.jobMod2.maxNumProcessors,        
+                   'loginShell':        loginShell,       
+                   'schedHostType':     self.jobMod2.schedHostType,       
+                   'userGroup':         userGroup,       
+                   'exceptList':        exceptList,       
+                   'userPriority':      userPriority,        
+                   'rsvId':             self.jobMod2.rsvId,       
+                   'extsched':          self.jobMod2.extsched,       
+                   'warningTimePeriod': self.jobMod2.warningTimePeriod,       
+                   'warningAction':     self.jobMod2.warningAction,       
+                   'jobGroup':          self.jobMod2.jobGroup,       
+                   'sla':               self.jobMod2.sla,       
+                   'licenseProject':    self.jobMod2.licenseProject,       
+                   'options3':          self.jobMod2.options3,        
+                   'delOptions3':       self.jobMod2.delOptions3,        
+                   'app':               self.jobMod2.app,       
+                   'apsString':         self.jobMod2.apsString,       
+                   'postExecCmd':       self.jobMod2.postExecCmd,       
+                   'runtimeEstimation': self.jobMod2.runtimeEstimation,       
+                   'requeueEValues':    self.jobMod2.requeueEValues,       
+                   'initChkpntPeriod':  self.jobMod2.initChkpntPeriod,        
+                   'migThreshold':      self.jobMod2.migThreshold,        
+                   'notifyCmd':         self.jobMod2.notifyCmd,       
+                   'jobDescription':    self.jobMod2.jobDescription}
            elif self.record.type == 45: # EVENT_JGRP_STATUS
              self.jgrpLog = &(self.record.eventLog.jgrpStatusLog)
              return [self.record.type,
@@ -5322,7 +5586,7 @@ def __countDuplicatesInList(dupLst):
    """
 
    newLst = []
-   uniqueSet = Set(dupLst)
+   uniqueSet = set(dupLst)
    for item in uniqueSet:
       newLst.append((item, dupLst.count(item)))
    return newLst
