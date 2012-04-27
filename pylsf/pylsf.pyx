@@ -4513,7 +4513,7 @@ cdef class lsb_geteventrec:
                      'jobPGid':                  self.startJob.jobPGid,
                      'hostFactor':               self.startJob.hostFactor,
                      'numExHosts':               self.startJob.numExHosts,
-                     'execHosts':                hosts,
+                     'execHosts':                execHosts,
                      'queuePreCmd':              self.startJob.queuePreCmd,
                      'queuePostCmd':             self.startJob.queuePostCmd,
                      'jFlags':                   self.startJob.jFlags,
