@@ -10,7 +10,7 @@ You will need Pyrex 0.9.5.1 or later.
 
 .. _Pyrex: http://www.cosc.canterbury.ac.nz/~greg/python/Pyrex/
 
-You will need Platform Computing LSF 6.2/7.0
+You will need Platform Computing LSF 6.2/7.0/8.0.1
 
 .. _LSF: http://www.platform.com
 
