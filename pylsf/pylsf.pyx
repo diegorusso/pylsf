@@ -26,6 +26,7 @@ cdef extern from "stdio.h":
     int fclose(FILE *fp)
     int fseek(FILE *stream, long offset, int whence)
     int SEEK_END
+    int SEEK_SET
 
 cdef extern from "Python.h":
     object PyCObject_FromVoidPtr(void* cobj, void (*destr)(void *))
@@ -4333,6 +4334,7 @@ cdef class lsb_geteventrec:
     cdef FILE *fp
     cdef int lineNum
     cdef int tail_file
+    cdef int position
 
     cdef eventRec *record
     cdef jobNewLog *newJob
@@ -4380,9 +4382,10 @@ cdef class lsb_geteventrec:
     cdef cpuProfileLog *cpuProfile
     cdef dataLoggingLog *dataLogging
 
-    def __init__(self, event_file, tail_file=False):
+    def __init__(self, event_file, position=0, tail_file=False):
         self.eventFile = event_file
         self.tail_file = tail_file
+        self.position = position
         self.lineNum = 0
         self.record
         self.newJob
@@ -4402,7 +4405,9 @@ cdef class lsb_geteventrec:
         self.fp = fopen(self.eventFile,'r')
         if self.tail_file:
             fseek(self.fp, 0L, SEEK_END)
-
+        else:
+            fseek(self.fp, self.position, SEEK_SET)
+            
     def __iter__(self):
         return self
 
