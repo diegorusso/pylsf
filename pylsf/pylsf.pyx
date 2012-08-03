@@ -5150,61 +5150,61 @@ def lsb_modify(job_id, modify_dict={}):
     req.jobName = NULL
     req.command = job_id
     for key, value in modify_dict.iteritems():
-    if key == 'j':
-        req.jobName = value
-        req.options = (req.options|0x01)
-    if key == 'l' or key == 'L':
-        req.loginShell = value
-        req.options = (req.options|0x200000)
-    if key == 'P':
-        req.projectName = value
-        req.options = (req.options|0x2000000)
-    if key == 'g':
-        req.jobGroup = value
-    if key == 'G':
-        req.userGroup = value
-        req.options = (req.options|0x200)
-    if key == 'x':
-        req.options = (req.options|0x40)
-    if key == 'B':
-        req.options = (req.options|0x100)
-    if key == 'E':
-        req.options = (req.options|0x80)
-    if key == 'u':
-        req.mailUser = value
-        req.options = (req.options|0x400000)
-    if key == 'q':
-        req.queue = value
-        req.options = (req.options|0x02)
-    if key == 'r':
-        req.options = (req.options|0x4000)
-    if key == 'R':
-        req.resReq = value
-        req.options = (req.options|0x40000)
-    if key == 't':
-        req.termTime = value
-    if key == 'i':
-        req.inFile = value
-        req.options = (req.options|0x08)
-    if key == 'o':
-        req.outFile = value
-        req.options = (req.options|0x10)
-    if key == 'e':
-        req.errFile = value
-        req.options = (req.options|0x20)
-    if key == 'n':
-        req.numProcessors = value
-    if key == 's':
-        req.sigValue = value
-    if key == 'sp':
-        req.userPriority = value
-        req.options = (req.options|0x200)
-    if key == 'U':
-        req.rsvId = value
-        req.options = (req.options|0x8000)
-    if key == 'Un':
-        req.rsvId = ""
-        req.options = (req.options|0x8000)
+        if key == 'j':
+            req.jobName = value
+            req.options = (req.options|0x01)
+        if key == 'l' or key == 'L':
+            req.loginShell = value
+            req.options = (req.options|0x200000)
+        if key == 'P':
+            req.projectName = value
+            req.options = (req.options|0x2000000)
+        if key == 'g':
+            req.jobGroup = value
+        if key == 'G':
+            req.userGroup = value
+            req.options = (req.options|0x200)
+        if key == 'x':
+            req.options = (req.options|0x40)
+        if key == 'B':
+            req.options = (req.options|0x100)
+        if key == 'E':
+            req.options = (req.options|0x80)
+        if key == 'u':
+            req.mailUser = value
+            req.options = (req.options|0x400000)
+        if key == 'q':
+            req.queue = value
+            req.options = (req.options|0x02)
+        if key == 'r':
+            req.options = (req.options|0x4000)
+        if key == 'R':
+            req.resReq = value
+            req.options = (req.options|0x40000)
+        if key == 't':
+            req.termTime = value
+        if key == 'i':
+            req.inFile = value
+            req.options = (req.options|0x08)
+        if key == 'o':
+            req.outFile = value
+            req.options = (req.options|0x10)
+        if key == 'e':
+            req.errFile = value
+            req.options = (req.options|0x20)
+        if key == 'n':
+            req.numProcessors = value
+        if key == 's':
+            req.sigValue = value
+        if key == 'sp':
+            req.userPriority = value
+            req.options = (req.options|0x200)
+        if key == 'U':
+            req.rsvId = value
+            req.options = (req.options|0x8000)
+        if key == 'Un':
+            req.rsvId = ""
+            req.options = (req.options|0x8000)
     rc = c_lsb_modify(&req, &reply, jobId)
     return rc
 
