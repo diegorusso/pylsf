@@ -25,6 +25,7 @@ cdef extern from "stdio.h":
     FILE *fopen(char *filename, char *mode)
     int fclose(FILE *fp)
     int fseek(FILE *stream, long offset, int whence)
+    long ftell(FILE *stream)
     int SEEK_END
     int SEEK_SET
 
@@ -4193,6 +4194,9 @@ cdef class lsb_geteventrec:
             raise StopIteration
         else:
             return a
+
+    def foffset(self):
+        return ftell(self.fp)
 
     def read(self):
         self.record = c_lsb_geteventrec(self.fp, &self.lineNum)
