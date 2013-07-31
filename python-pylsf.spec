@@ -2,8 +2,8 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 Name:           python-pylsf
-Version:        2009.02.23
-Release:        1.cern1%{?dist}
+Version:        2013.07.31
+Release:        1.arm1%{?dist}
 Summary:        Bindings for Platform LSF
 
 Group:          Development/Languages
@@ -21,7 +21,7 @@ BuildRequires:  python-devel Pyrex  LSF-GLIBC-2.3-devel
 Bindings for Platform LSF
 
 %prep
-%setup -q -n pylsf-0.0.1
+%setup -q -n pylsf-0.2
 %patch0 -p1
 %patch1 -p1
 
