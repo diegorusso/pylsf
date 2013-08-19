@@ -1,6 +1,6 @@
 """
 
-PyLSF : Pyrex module for interfacing to Platform LSF 8.0.1
+PyLSF : Pyrex module for interfacing to Platform LSF 9 
 
 """
 import os
@@ -4866,11 +4866,11 @@ cdef class lsb_geteventrec:
                         queue]
             elif self.record.type == 43: # EVENT_LOG_SWITCH
                 self.logSwitch = &(self.record.eventLog.logSwitchLog)
-                return [self.record.type,
-                        "LOG_SWITCH",
-                        self.record.version,
-                        self.record.eventTime,
-                        self.logSwitch.lastJobId]
+                return {'type':         self.record.type,
+                        'eventType':    "LOG_SWITCH",
+                        'version':      self.record.version,
+                        'eventTime':    self.record.eventTime,
+                        'lastJobId':    self.logSwitch.lastJobId}
             elif self.record.type == 44: # EVENT_JOB_MODIFY2
                 self.jobMod2 = &(self.record.eventLog.jobModLog)
                 askedHosts = []

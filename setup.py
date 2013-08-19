@@ -18,7 +18,7 @@ from stat import *
 # Mininmum of Python 2.3 required because that's what Pyrex-0.9.5 requires
 
 if not hasattr(sys, 'version_info') or sys.version_info < (2,3,0,'final'):
-   raise SystemExit, "Python 2.3+ or later required to build PyLSF."
+    raise SystemExit, "Python 2.3+ or later required to build PyLSF."
 
 # Retrieve the LSF environment variables and work out include dir
 
@@ -30,37 +30,34 @@ try:
 except AttributeError:
     lsf_major = 0
 if (lsf_libdir):
+    LSF_VERSION = re.compile(r'^(?P<lsf_dir>.*lsf|.*lsfhpc)/(?P<lsf_major>\d+).(?P<lsf_minor>\d+)/.*lib$')
+    LSF_INCDIR = re.compile(r'^(?P<lsf_dir>.*)/(?P<lsf_os>.*)/lib$')
 
-  LSF_VERSION = re.compile(r'^(?P<lsf_dir>.*lsf|.*lsfhpc)/(?P<lsf_major>\d+).(?P<lsf_minor>\d+)/.*lib$')
-  LSF_INCDIR = re.compile(r'^(?P<lsf_dir>.*)/(?P<lsf_os>.*)/lib$')
-
-  line = LSF_INCDIR.match(lsf_libdir)
-  if line:
-
-    lsf_incdir = line.group("lsf_dir") + "/include"
-    if not lsf_major:
-        line = LSF_VERSION.match(lsf_libdir)
-        if line:
-          if line.group("lsf_major"):
-            lsf_major = int(line.group("lsf_major"))
-
+    line = LSF_INCDIR.match(lsf_libdir)
+    if line:
+        lsf_incdir = line.group("lsf_dir") + "/include"
+        if not lsf_major:
+            line = LSF_VERSION.match(lsf_libdir)
+            if line:
+                if line.group("lsf_major"):
+                    lsf_major = int(line.group("lsf_major"))
 else:
-  raise SystemExit, "PyLSF: Unable to detect LSF environment......exiting"
+    raise SystemExit, "PyLSF: Unable to detect LSF environment......exiting"
 
-print lsf_incdir
 include_dirs = [lsf_incdir, '/usr/include']
 library_dirs = [lsf_libdir, '/usr/lib64', '/usr/lib']
 extra_link_args = [ '']
 extra_objects = [ '']
 
-if lsf_major == 7 or lsf_major == 8:
-  libraries = ['bat', 'lsf', 'lsbstream', 'nsl', 'dl', 'crypt' ]
+if lsf_major == 7 or lsf_major == 8 or lsf_major == 9:
+    libraries = ['bat', 'lsf', 'lsbstream', 'nsl', 'dl', 'crypt' ]
 elif lsf_major == 6:
-  libraries = ['bat','lsf','nsl']
+    libraries = ['bat','lsf','nsl']
 elif lsf_major == 0:
-  raise SystemExit, "PyLSF: cannot detect any LSF version.....exiting"
+    print lsf_major
+    raise SystemExit, "PyLSF: cannot detect any LSF version.....exiting"
 else:
-  raise SystemExit, "PyLSF: detected unsupported LSF version %d.....exiting" % lsf_major
+    raise SystemExit, "PyLSF: detected unsupported LSF version %d.....exiting" % lsf_major
 
 print "PyLSF: detected LSF version %d" % lsf_major
 compiler_dir = os.path.join(get_python_lib(prefix=''), 'pylsf/')
@@ -93,12 +90,11 @@ setup(
     packages = ["pylsf"],
     ext_modules = [
         Extension( "pylsf/pylsf",["pylsf/pylsf.pyx"],
-                   libraries = libraries,
-                   library_dirs = library_dirs,
-                   include_dirs = include_dirs,
-                   extra_compile_args = [],
-                   extra_link_args = [] )
+                    libraries = libraries,
+                    library_dirs = library_dirs,
+                    include_dirs = include_dirs,
+                    extra_compile_args = [],
+                    extra_link_args = [] )
     ],
     cmdclass = {"build_ext": build_ext}
 )
-
