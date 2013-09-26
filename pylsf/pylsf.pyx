@@ -29,6 +29,22 @@ cdef extern from "stdio.h":
     int SEEK_END
     int SEEK_SET
 
+#TOCHECK
+cdef extern from "stdarg.h":
+    ctypedef struct va_list
+
+#TOCHECK
+cdef extern from "sys/time.h":
+    ctypedef struct timeval
+
+#TOCHECK
+cdef extern from "sys/stat.h":
+    ctypedef struct stat
+
+#TOCHECK
+cdef extern from "sys/select.h":
+    ctypedef struct fd_set
+
 cdef extern from "Python.h":
     object PyCObject_FromVoidPtr(void* cobj, void (*destr)(void *))
     void* PyCObject_AsVoidPtr(object)
@@ -79,7 +95,116 @@ cdef long* pyLongSeqToLongArray(seq):
         intArray[i] = <long>NULL
     return intArray
 
+DEF LSF_DEFAULT_SOCKS =	15
+DEF MAXLINELEN = 512
+DEF MAXLSFNAMELEN = 40
+DEF MAXLSFNAMELEN_70_EP1 = 128
+DEF MAXSRES = 32
+DEF MAXRESDESLEN = 256
+DEF NBUILTINDEX = 11
+DEF MAXTYPES = 128
+DEF MAXMODELS = 1024+2
+DEF MAXMODELS_70 = 128
+DEF MAXTYPES_31 = 25
+DEF MAXMODELS_31 = 30
+DEF MAXFILENAMELEN = 256
+DEF MAXEVARS = 30
+DEF GENMALLOCPACE = 1024
+DEF MAXLOGCLASSLEN = 1024
+
+DEF MAXHOSTNAMELEN = 64
+DEF MAXPATHLEN = 1024
+
+DEF MAX_VERSION_LEN = 12
+
+DEF MAX_LSB_NAME_LEN = 60
+DEF LSF_RLIM_NLIMITS = 12
+DEF NUM_JGRP_COUNTERS = 14
+DEF LSB_SIG_NUM = 30
+
+# Events logged in lsb.events file
+
+DEF EVENT_JOB_NEW                   = 1
+DEF EVENT_JOB_START                 = 2
+DEF EVENT_JOB_STATUS                = 3
+DEF EVENT_JOB_SWITCH                = 4
+DEF EVENT_JOB_MOVE                  = 5
+DEF EVENT_QUEUE_CTRL                = 6
+DEF EVENT_HOST_CTRL                 = 7
+DEF EVENT_MBD_DIE                   = 8
+DEF EVENT_MBD_UNFULFILL             = 9
+DEF EVENT_JOB_FINISH                = 10
+DEF EVENT_LOAD_INDEX                = 11
+DEF EVENT_CHKPNT                    = 12
+DEF EVENT_MIG                       = 13
+DEF EVENT_PRE_EXEC_START            = 14
+DEF EVENT_MBD_START                 = 15
+DEF EVENT_JOB_ROUTE                 = 16
+DEF EVENT_JOB_MODIFY                = 17
+DEF EVENT_JOB_SIGNAL                = 18
+DEF EVENT_CAL_NEW                   = 19
+DEF EVENT_CAL_MODIFY                = 20
+DEF EVENT_CAL_DELETE                = 21
+DEF EVENT_JOB_FORWARD               = 22
+DEF EVENT_JOB_ACCEPT                = 23
+DEF EVENT_STATUS_ACK                = 24
+DEF EVENT_JOB_EXECUTE               = 25
+DEF EVENT_JOB_MSG                   = 26
+DEF EVENT_JOB_MSG_ACK               = 27
+DEF EVENT_JOB_REQUEUE               = 28
+DEF EVENT_JOB_OCCUPY_REQ            = 29
+DEF EVENT_JOB_VACATED               = 30
+DEF EVENT_JOB_SIGACT                = 32
+DEF EVENT_SBD_JOB_STATUS            = 34
+DEF EVENT_JOB_START_ACCEPT          = 35
+DEF EVENT_CAL_UNDELETE              = 36
+DEF EVENT_JOB_CLEAN                 = 37
+DEF EVENT_JOB_EXCEPTION             = 38
+DEF EVENT_JGRP_ADD                  = 39
+DEF EVENT_JGRP_MOD                  = 40
+DEF EVENT_JGRP_CTRL                 = 41
+DEF EVENT_JOB_FORCE                 = 42
+DEF EVENT_LOG_SWITCH                = 43
+DEF EVENT_JOB_MODIFY2               = 44
+DEF EVENT_JGRP_STATUS               = 45
+DEF EVENT_JOB_ATTR_SET              = 46
+DEF EVENT_JOB_EXT_MSG               = 47
+DEF EVENT_JOB_ATTA_DATA             = 48
+DEF EVENT_JOB_CHUNK                 = 49
+DEF EVENT_SBD_UNREPORTED_STATUS     = 50
+DEF EVENT_ADRSV_FINISH              = 51
+DEF EVENT_HGHOST_CTRL               = 52
+DEF EVENT_CPUPROFILE_STATUS         = 53
+DEF EVENT_DATA_LOGGING              = 54
+DEF EVENT_JOB_RUN_RUSAGE            = 55
+DEF EVENT_END_OF_STREAM             = 56
+DEF EVENT_SLA_RECOMPUTE             = 57
+DEF EVENT_METRIC_LOG	            = 58
+DEF EVENT_TASK_FINISH               = 59
+DEF EVENT_JOB_RESIZE_NOTIFY_START   = 60
+DEF EVENT_JOB_RESIZE_NOTIFY_ACCEPT  = 61
+DEF EVENT_JOB_RESIZE_NOTIFY_DONE    = 62
+DEF EVENT_JOB_RESIZE_RELEASE        = 63
+DEF EVENT_JOB_RESIZE_CANCEL         = 64
+DEF EVENT_JOB_RESIZE                = 65
+DEF EVENT_JOB_ARRAY_ELEMENT         = 66
+DEF EVENT_MBD_SIM_STATUS            = 67
+DEF EVENT_JOB_FINISH2               = 68
+DEF EVENT_JOB_STARTLIMIT            = 69
+DEF EVENT_JOB_STATUS2               = 70
+DEF EVENT_JOB_PENDING_REASONS       = 71
+DEF EVENT_JOB_SWITCH2               = 72
+DEF EVENT_JOB_ACCEPTACK             = 73
+DEF EVENT_JOB_PROVISION_START       = 74
+DEF EVENT_JOB_PROVISION_END         = 75
+DEF EVENT_JOB_FANOUT_INFO           = 76
+DEF NUM_EVENT_TYPES                 = 76
+
+
 cdef extern from "lsf/lsf.h":
+
+    ctypedef int SOCKET
+
     enum valueType:
         LS_BOOLEAN
         LS_NUMERIC
@@ -122,12 +247,24 @@ cdef extern from "lsf/lsf.h":
         double      ru_nivcsw
         double      ru_exutime
 
+    cdef struct param_entry:
+        int         flags
+        char        *keys
+        char        *value
+        char        *default_value
+
+    ctypedef struct PKVP:
+        int         num_params
+        char        *daemon_time
+        param_entry *param
+
     cdef struct hRusage:
         char    *name
         int     mem
         int     swap
         int     utime
         int     stime
+        PKVP    hostExtendInfoPKVPs
 
     cdef struct lsfAcctRec:
         int         pid
@@ -151,33 +288,33 @@ cdef extern from "lsf/lsf.h":
         int         npgids
         int         *pgid
         int         nthreads
-
+    
     cdef struct resItem:
-        char    name[40]    # MAXLSFNAMELEN
-        char    des[256]    # MAXRESDESLEN
-        int     valueType
-        int     orderType
-        int     flags
-        int     interval
+        char        name[MAXLSFNAMELEN]
+        char        des[MAXRESDESLEN]
+        valueType   valueType
+        orderType   orderType
+        int         flags
+        int         interval
 
     cdef struct lsInfo:
         int         nRes
         resItem     *resTable
         int         nTypes
-        char        hostTypes[128][40]      # [MAXTYPES][MAXLSFNAMELEN]
+        char        hostTypes[MAXTYPES][MAXLSFNAMELEN]
         int         nModels
-        char        hostModels[1024+2][40]  # [MAXMODELS][MAXLSFNAMELEN]
-        char        hostArchs[1024+2][128]  # [MAXMODELS][MAXLSFNAMELEN_70_EP1]
-        int         modelRefs[1024+2]       # MAXMODELS
-        float       cpuFactor[1024+2]       # MAXMODELS
+        char        hostModels[MAXMODELS][MAXLSFNAMELEN]
+        char        hostArchs[MAXMODELS][MAXLSFNAMELEN_70_EP1]
+        int         modelRefs[MAXMODELS]
+        float       cpuFactor[MAXMODELS]
         int         numIndx
         int         numUsrIndx
 
     cdef struct clusterInfo:
-        char    clusterName[40]     # MAXLSFNAMELEN
+        char    clusterName[MAXLSFNAMELEN]
         int     status
-        char    masterName[64]      # MAXHOSTNAMELEN
-        char    managerName[40]     # MAXLSFNAMELEN
+        char    masterName[MAXHOSTNAMELEN]
+        char    managerName[MAXLSFNAMELEN]
         int     managerId
         int     numServers
         int     numClients
@@ -192,12 +329,12 @@ cdef extern from "lsf/lsf.h":
         char    **admins
         int     analyzerLicFlag
         int     jsLicFlag
-        char    afterHoursWindow[512]   # MAXLINELEN
-        char    preferAuthName[40]      # MAXLSFNAMELEN
-        char    inUseAuthName[40]       # MAXLSFNAMELEN
+        char    afterHoursWindow[MAXLINELEN]
+        char    preferAuthName[MAXLSFNAMELEN]
+        char    inUseAuthName[MAXLSFNAMELEN]
 
     cdef struct hostInfo:
-        char    hostName[64]    # MAXHOSTNAMELEN
+        char    hostName[MAXHOSTNAMELEN]
         char    *hostType
         char    *hostModel
         float   cpuFactor
@@ -219,41 +356,304 @@ cdef extern from "lsf/lsf.h":
         int     licFeaturesNeeded
 
     cdef struct hostLoad:
-        char    hostName[40]    # MAXHOSTNAMELEN
+        char    hostName[MAXHOSTNAMELEN]
         int     *status
         float   *li
 
     cdef struct placeInfo:
-        char    hostName[40]    # MAXHOSTNAMELEN
+        char    hostName[MAXHOSTNAMELEN]
         int     numtask
+    
+    cdef struct confNode:
+        confNode    *leftPtr
+        confNode    *rightPtr
+        confNode    *fwPtr
+        char	    *cond
+        int		    beginLineNum
+        int		    numLines
+        char	    **lines
+        char	    tag
+        char        *fname
 
-    cdef extern void        cls_perror          "ls_perror"(char*)
-    cdef extern char        *cls_sysmsg         "ls_sysmsg"()
-    cdef extern int         cls_readconfenv     "ls_readconfenv"(config_param *, char*)
-    cdef extern int         cls_isclustername   "ls_isclustername"(char*)
+    cdef struct pStack:
+        int         top
+        int         size
+        confNode    **nodes
+
+    cdef struct confHandle:
+        confNode    *rootNode
+        char        *fname
+        confNode    *curNode
+        int	        lineCount
+        pStack      *ptrStack
+
+    cdef struct lsConf:
+        confHandle  *confhandle
+        int         numConds
+        char        **conds
+        int		    *values
+
+    cdef struct sharedConf:
+        lsInfo      *lsinfo
+        int		    numCls
+        char	    **clusterNames
+        char 	    **servers
+    
+    cdef struct lsSharedResourceInstance:
+        char    *value
+        int     nHosts
+        char    **hostList
+
+    ctypedef lsSharedResourceInstance LS_SHARED_RESOURCE_INST_T
+
+    cdef struct lsSharedResourceInfo:
+        char    *resourceName
+        int     nInstances
+        LS_SHARED_RESOURCE_INST_T  *instances
+
+    ctypedef lsSharedResourceInfo LS_SHARED_RESOURCE_INFO_T
+    
+    cdef struct clusterConf:
+        clusterInfo *clinfo
+        int         numHosts
+        hostInfo    *hosts
+        int         defaultFeatures
+        int         numShareRes
+        LS_SHARED_RESOURCE_INFO_T *shareRes
+
+    cdef struct rusage:
+        timeval     *ru_utime
+        timeval     *ru_stime
+        long	    ru_maxrss
+        long	    ru_ixrss
+        long	    ru_idrss
+        long	    ru_isrss
+        long	    ru_minflt
+        long	    ru_majflt
+        long	    ru_nswap
+        long	    ru_inblock
+        long	    ru_oublock
+        long	    ru_msgsnd
+        long	    ru_msgrcv
+        long	    ru_nsignals
+        long	    ru_nvcsw
+        long	    ru_nivcsw
+        long        ru_ioch
+
+    cdef struct limHostAnnReq:
+        int         nhosts
+        char        **hostnames
+        int         count
+
+    cdef struct lim_licensekey:
+        int         nkey
+        char        **keyname
+    
+    ctypedef lim_licensekey lim_licensekey_t
+
+    cdef struct lim_licensekey_info:
+        char        *name
+        char        *keyName
+        int         licensed
+        int         numLicense
+        char        *notice
+    
+    ctypedef lim_licensekey_info lim_licensekey_info_t
+
+    cdef struct lim_licensekey_reply:
+        int         maxcore
+        int         nkey
+        lim_licensekey_info_t   **keyinfo
+    
+    ctypedef lim_licensekey_reply lim_licensekey_reply_t
+    
+    ctypedef enum product_identification_t:
+        PRODUCT_ALL = 0
+        PRODUCT_LSF
+        PRODUCT_SYMPHONY
+        PRODUCT_PCM
+        PRODUCT_NUM 
+    
+    cdef struct entitlementInfoRequest:
+        product_identification_t product
+    
+    cdef struct entitlementInfo:
+        char        *name
+        char        *version
+        time_t      expiry
+        int         number
+        int         used
+        char        *restrictions
+        char        *misc
+        char        *infoString
+        int         entitled
+        char        *entitledDesc
+
+    cdef struct entitlementInfoReply:
+        int         errCode
+        char        *clName
+        char        *masterName
+        char        *buildDate
+        char        *additionalInfo
+        int         nEntitlements
+        entitlementInfo *entitlements
+        int         nAddons
+        entitlementInfo *addons
+    
+    enum nioType:
+        NIO_STATUS
+        NIO_STDOUT
+        NIO_EOF
+        NIO_IOERR
+        NIO_REQUEUE
+        NIO_STDERR
+
+    cdef struct nioEvent:
+        int         tid
+        nioType     type
+        int         status
+
+    struct nioInfo:
+        int         num
+        nioEvent    *ioTask
+
+    ctypedef long off_t
+    ctypedef int LS_WAIT_T
+
+# THE COMMENTED LINES NEED TO BE IMPLEMENTED
+
+    cdef extern int         cls_readconfenv     "ls_readconfenv"(config_param *, char *)
+#    cdef extern char        **cls_placereq      "ls_placereq"(char *resreq, int *numhosts, int options, char *fromhost)
+#    cdef extern char        **cls_placeofhosts  "ls_placeofhosts"(char *resreq, int *numhosts, int options, char *fromhost, char **hostlist, int listsize)
+#    cdef extern char        **cls_placeoftype   "ls_placeoftype"(char *resreq, int *numhosts, int options, char *fromhost, char *hosttype)
+    cdef extern hostLoad    *cls_load           "ls_load"(char *resreq, int *numhosts, int options, char *fromhost)
+#    cdef extern hostLoad    *cls_loadofhosts    "ls_loadofhosts"(char *resreq, int *numhosts, int options, char *fromhost, char **hostlist, int listsize)
+#    cdef extern hostLoad    *cls_loadoftype     "ls_loadoftype"(char *resreq, int *numhosts, int options, char *fromhost, char *hosttype)
+    cdef extern hostLoad    *cls_loadinfo       "ls_loadinfo"(char *resreq, int *numhosts, int options, char *fromhost, char **hostlist, int listsize, char ***indxnamelist)
+    cdef extern int         cls_loadadj         "ls_loadadj"(char *resreq, placeInfo *hostlist, int listsize)
+    cdef extern int         cls_eligible        "ls_eligible"(char *task, char *resreqstr, char mode)
+#    cdef extern char        *cls_resreq         "ls_resreq"(char *task)
+#    cdef extern int         cls_insertrtask     "ls_insertrtask"(char *task)
+#    cdef extern int         cls_insertltask     "ls_insertltask"(char *task)
+#    cdef extern int         cls_deletertask     "ls_deletertask"(char *task)
+#    cdef extern int         cls_deleteltask     "ls_deleteltask"(char *task)
+#    cdef extern int         cls_listrtask       "ls_listrtask"(char ***taskList, int sortflag)
+#    cdef extern int         cls_listltask       "ls_listltask"(char ***taskList, int sortflag)
+#    cdef extern char        **cls_findmyconnections "ls_findmyconnections"()
+#    cdef extern int         cls_isconnected     "ls_isconnected"(char *hostName)
+#    cdef extern int         cls_lostconnection  "ls_lostconnection"()
     cdef extern char        *cls_getclustername "ls_getclustername"()
-    cdef extern lsInfo      *cls_info           "ls_info"()
-    cdef extern char        **cls_indexnames    "ls_indexnames"(lsInfo*)
-    cdef extern hostInfo    *cls_gethostinfo    "ls_gethostinfo"(char*, int*, char**, int, int)
-    cdef extern char        *cls_gethostmodel   "ls_gethostmodel"(char*)
-    cdef extern char        *cls_gethosttype    "ls_gethosttype"(char*)
-    cdef extern float       *cls_gethostfactor  "ls_gethostfactor"(char*)
-    cdef extern float       *cls_getmodelfactor "ls_getmodelfactor"(char*)
+    cdef extern clusterInfo *cls_clusterinfo    "ls_clusterinfo"(char *, int *, char **, int, int)
+#    cdef extern lsSharedResourceInfo *cls_sharedresourceinfo    "ls_sharedresourceinfo"(char **, int *, char *, int)
     cdef extern char        *cls_getmastername  "ls_getmastername"()
     cdef extern char        *cls_getmyhostname  "ls_getmyhostname"()
     cdef extern char        *cls_getmyhostname2 "ls_getmyhostname2"()
-    cdef extern char        *cls_getmnthost     "ls_getmnthost"(char*)
-    cdef extern clusterInfo *cls_clusterinfo    "ls_clusterinfo"(char*, int*, char**, int, int)
-    cdef extern hostLoad    *cls_load           "ls_load"(char*, int*, int, char*)
-    cdef extern hostLoad    *cls_loadinfo       "ls_loadinfo"(char*, int*, int, char*, char**, int, char***)
-    cdef extern int         cls_loadadj         "ls_loadadj"(char*, placeInfo *, int)
-    cdef extern int         cls_eligible        "ls_eligible"(char*, char*, char)
-    cdef extern int         cls_lockhost        "ls_lockhost"(time_t)
+    cdef extern hostInfo    *cls_gethostinfo    "ls_gethostinfo"(char *, int *, char **, int, int)
+#    cdef extern char        *cls_getISVmode     "ls_getISVmode"()
+#    cdef extern int         cls_isshutdown      "ls_isshutdown"()
+#    cdef extern int         cls_isPartialLicensingEnabled   "ls_isPartialLicensingEnabled"()
+    cdef extern lsInfo      *cls_info           "ls_info"()
+    cdef extern char        **cls_indexnames    "ls_indexnames"(lsInfo *) 
+    cdef extern int         cls_isclustername   "ls_isclustername"(char *) 
+    cdef extern char        *cls_gethosttype    "ls_gethosttype"(char *hostname)
+    cdef extern float       *cls_getmodelfactor "ls_getmodelfactor"(char *modelname)
+    cdef extern float       *cls_gethostfactor  "ls_gethostfactor"(char *hostname)
+#    cdef extern int         cls_gethostfactor4GridBroker    "ls_gethostfactor4GridBroker"(char *hostname, float *cpufactor)
+    cdef extern char        *cls_gethostmodel   "ls_gethostmodel"(char *hostname)
+#    cdef extern int         *cls_gethostrespriority "ls_gethostrespriority"(char *hostname)
+    cdef extern int         cls_lockhost        "ls_lockhost"(time_t duration)
     cdef extern int         cls_unlockhost      "ls_unlockhost"()
-    cdef extern int         cls_limcontrol      "ls_limcontrol"(char*, int)
-    cdef extern int         cls_rescontrol      "ls_rescontrol"(char*, int, int)
+    cdef extern int         cls_limcontrol      "ls_limcontrol"(char *hostname, int opCode)    
+#    cdef extern void        cls_remtty          "ls_remtty"(int ind, int enableIntSus)
+#    cdef extern void        cls_loctty          "ls_loctty"(int ind)
+    cdef extern char        *cls_sysmsg         "ls_sysmsg"()
+    cdef extern void        cls_perror          "ls_perror"(char *usrMsg)
+#    cdef extern lsConf      *cls_getconf        "ls_getconf"(char *)
+#    cdef extern void        cls_freeconf        "ls_freeconf"(lsConf * )
+#    cdef extern sharedConf  *cls_readshared     "ls_readshared"(char *)
+#    cdef extern clusterConf *cls_readcluster    "ls_readcluster"(char *, lsInfo *)
+#    cdef extern clusterConf *cls_readcluster_ex "ls_readcluster_ex"(char *, lsInfo *, int)
+#    cdef extern int         _cls_initdebug      "_ls_initdebug"(char *appName)
+#    cdef extern void        cls_syslog          "ls_syslog"(int level, char *fmt, ...)
+#    cdef extern void        cls_errlog          "ls_errlog"(FILE *fp, char *fmt, ...)
+#    cdef extern void        cls_verrlog         "ls_verrlog"(FILE *fp, char *fmt, va_list ap)
+#    cdef extern int         cls_fdbusy          "ls_fdbusy"(int fd)
+    cdef extern char        *cls_getmnthost     "ls_getmnthost"(char *fn)    
+#    cdef extern int         cls_servavail       "ls_servavail"(int, int)
+#    cdef extern int         cls_getpriority     "ls_getpriority"(int *priority)
+#    cdef extern int         cls_setpriority     "ls_setpriority"(int newPriority)
+#    cdef extern void        cls_ruunix2lsf      "ls_ruunix2lsf"(rusage *rusage, lsfRusage *lsfRusage)
+#    cdef extern void        cls_rulsf2unix      "ls_rulsf2unix"(lsfRusage *lsfRusage, rusage *rusage)
+#    cdef extern int         cls_postevent       "ls_postevent"(int, char *, char **, int)
+#    cdef extern int         cls_postmultievent  "ls_postmultievent"(int, char *, char **, int, int)
+#    cdef extern int         cls_limhostann      "ls_limhostann"(limHostAnnReq *)
+#    cdef extern void        cls_freelim_licensekey  "ls_freelim_licensekey"(lim_licensekey *)
+#    cdef extern void        cls_freelim_licensekey_reply    "ls_freelim_licensekey_reply"(lim_licensekey_reply *)
+#    cdef extern int         cls_getLicenseInfo  "ls_getLicenseInfo"(lim_licensekey* req, lim_licensekey_reply* ack)
+#    cdef extern entitlementInfoReply *cls_getentitlementinfo    "ls_getentitlementinfo"(entitlementInfoRequest*)
+#    cdef extern void        cls_freeentitlementinfo "ls_freeentitlementinfo"( entitlementInfoReply *)
+#    cdef extern int         cls_initdebug       "ls_initdebug"(char *appName)
+#    cdef extern int         cls_nioinit         "ls_nioinit"(SOCKET sock)
+#    cdef extern int         cls_nioselect       "ls_nioselect"(int, fd_set *, fd_set *, fd_set *, nioInfo ** , timeval *)
+#    cdef extern int         cls_nioctl          "ls_nioctl"(int, int)
+#    cdef extern int         cls_nionewtask      "ls_nionewtask"(int, SOCKET)
+#    cdef extern int         cls_nioremovetask   "ls_nioremovetask"(int)
+#    cdef extern int         cls_niowrite        "ls_niowrite"(char *, int)
+#    cdef extern int         cls_nioclose        "ls_niocloser"()
+#    cdef extern int         cls_nioread         "ls_nioread"(int, char *, int)
+#    cdef extern int         cls_niotasks        "ls_niotasks"(int, int *, int)
+#    cdef extern int         cls_niostatus       "ls_niostatus"(int, int *, rusage *)
+#    cdef extern int         cls_niokill         "ls_niokill"(int)
+#    cdef extern int         cls_niosetdebug     "ls_niosetdebug"(int)
+#    cdef extern int         cls_niodump         "ls_niodump"(int, int, int, char *)
+#    cdef extern int         cls_initrex         "ls_initrex"(int, int)
+#    cdef extern int         cls_donerex         "ls_donerex"()
+#    cdef extern int         cls_niossync        "ls_niossync"(int)
+#    cdef extern int         cls_setstdin        "ls_setstdin"(int on, int *rpidlist, int len)
+#    cdef extern int         cls_getstdin        "ls_getstdin"(int on, int *rpidlist, int maxlen)
+#    cdef extern int         cls_setstdout       "ls_setstdout"(int on, char *format)
+#    cdef extern int         cls_stdinmode       "ls_stdinmode"(int onoff)
+#    cdef extern int         cls_stoprex         "ls_stoprex"()
+#    cdef extern int         cls_chdir           "ls_chdir"(char *, char *)
+#    cdef extern SOCKET      cls_connect         "ls_connect"(char *)
+#    cdef extern int         cls_rkill           "ls_rkill"(int, int)
+#    cdef extern int         cls_rsetenv         "ls_rsetenv"(char *host, char **env)
+#    cdef extern int         cls_rsetenv_async   "ls_rsetenv_async"(char *host, char **env)
+    cdef extern int         cls_rescontrol      "ls_rescontrol"(char *host, int opcode, int options)
+#    cdef extern lsfAcctRec  *cls_getacctrec     "ls_getacctrec"(FILE *, int *)
+#    # No idea what lsfAcctRec_ext is
+#    # cdef extern lsfAcctRec_ext *cls_getacctrec_ext  "ls_getacctrec_ext"(FILE *, int *)
+#    cdef extern int         cls_putacctrec      "ls_putacctrec"(FILE *, lsfAcctRec *)
+#    # cdef extern int         cls_putacctrec_ext  "ls_putacctrec_ext"(FILE *, lsfAcctRec_ext *)
+#    # No idea what resLogRecord is
+#    # cdef extern resLogRecord *cls_readrexlog    "ls_readrexlog"(FILE *)
+#    cdef extern int         cls_rexecv          "ls_rexecv"(char *, char **, int)
+#    cdef extern int         cls_rexecve         "ls_rexecve"(char *, char **, int, char **)
+#    cdef extern int         cls_rexecv2         "ls_rexecv2"(char *, char **, int)
+#    cdef extern SOCKET      cls_startserver     "ls_startserver"(char *, char **, int)
+#    cdef extern int         cls_rtask           "ls_rtask"(char *, char **, int)
+#    cdef extern int         cls_rtaske          "ls_rtaske"(char *, char **, int, char **)
+#    cdef extern int         cls_rtask2          "ls_rtask2"(char *, char **, int, char **)
+#    cdef extern int         cls_rwait           "ls_rwait"(LS_WAIT_T *, int, rusage *)
+#    cdef extern int         cls_rwaittid        "ls_rwaittid"(int, LS_WAIT_T *, int, rusage *)
+#    cdef extern SOCKET      cls_conntaskport    "ls_conntaskport"(int tid)   
+#    cdef extern int         cls_ropen           "ls_ropen"(char *host, char *fn, int flags, int mode)
+#    cdef extern int         cls_rclose          "ls_rclose"(int rfd)
+#    cdef extern int         cls_rwrite          "ls_rwrite"(int rfd, char *buf, int len)
+#    cdef extern int         cls_rread           "ls_rread"(int rfd, char *buf, int len)
+#    cdef extern off_t       cls_rlseek          "ls_rlseek"(int rfd, off_t offset, int whence)
+#    cdef extern int         cls_runlink         "ls_runlink"(char *host, char *fn)
+#    cdef extern int         cls_rfstat          "ls_rfstat"(int rfd, stat *buf)
+#    cdef extern int         cls_rstat           "ls_rstat"(char *host, char *fn, stat *buf) 
+#    cdef extern char        *cls_rgetmnthost    "ls_rgetmnthost"(char *host, char *fn)
+#    cdef extern int         cls_rfcontrol       "ls_rfcontrol"(int command, int arg)
+#    cdef extern int         cls_rfterminate     "ls_rfterminate"(char *host)
+#    cdef extern int         cls_createdir       "ls_createdir"(char *host, char *path)
+
 
 cdef extern from "lsf/lsbatch.h":
+    ctypedef long long int LS_LONG_INT
+    
     cdef struct submig:
         long int    jobId
         int         options
@@ -391,7 +791,7 @@ cdef extern from "lsf/lsbatch.h":
         int                 jType
         char                *parentGroup
         char                *jName
-        int                 counter[14] # NUM_JGRP_COUNTERS
+        int                 counter[NUM_JGRP_COUNTERS]
         unsigned short int  port
         int                 jobPriority
         int                 numExternalMsg
@@ -512,7 +912,7 @@ cdef extern from "lsf/lsbatch.h":
         float   shareAdjustment
 
     cdef struct hostPartInfoEnt:
-        char                hostPart[60]    # MAX_LSB_NAME_LEN
+        char                hostPart[MAX_LSB_NAME_LEN]
         char                *hostList
         int                 numUsers
         hostPartUserInfo*   users
@@ -619,7 +1019,7 @@ cdef extern from "lsf/lsbatch.h":
         int                 userJobLimit
         float               procJobLimit
         char                *windows
-        int                 rLimits[12]    # LSF_RLIM_NLIMITS
+        int                 rLimits[LSF_RLIM_NLIMITS]
         char                *hostSpec
         int                 qAttrib
         int                 qStatus
@@ -653,7 +1053,7 @@ cdef extern from "lsf/lsbatch.h":
         char                *suspendActCmd
         char                *resumeActCmd
         char                *terminateActCmd
-        int                 sigMap[30]    # LSB_SIG_NUM
+        int                 sigMap[LSB_SIG_NUM]
         char                *preemption
         int                 maxRschedTime
         int                 numOfSAccts
@@ -661,7 +1061,7 @@ cdef extern from "lsf/lsbatch.h":
         char                *chkpntDir
         int                 chkpntPeriod
         int                 imptJobBklg
-        int                 defLimits[12]    # LSF_RLIM_NLIMITS
+        int                 defLimits[LSF_RLIM_NLIMITS]
         int                 chunkJobSize
         int                 minProcLimit
         int                 defProcLimit
@@ -947,13 +1347,13 @@ cdef extern from "lsf/lsbatch.h":
         char    *path
         char    *user
         char    *sla
-        int     counters[14]    # NUM_JGRP_COUNTERS
+        int     counters[NUM_JGRP_COUNTERS]
         int     maxJLimit
 
     cdef struct jobAttrInfoEnt:
         long int    jobId
         int         port
-        char        hostname[64]    # MAXHOSTNAMELEN
+        char        hostname[MAXHOSTNAMELEN]
 
     cdef struct jgrpAdd:
         char    *groupSpec
@@ -1021,7 +1421,7 @@ cdef extern from "lsf/lsbatch.h":
         char            *description
         char            *controlAction
         float           throughput
-        int             counters[14+1]    # NUM_JGRP_COUNTERS
+        int             counters[NUM_JGRP_COUNTERS+1]
         char            *consumer
         slaControl      *ctrl
         slaControlExt   *ctrlExt
@@ -1035,14 +1435,70 @@ cdef extern from "lsf/lsbatch.h":
 
     cdef struct logSwitchLog:
         int     lastJobId
-        time_t  lastTraceTime
-        int     lastTraceType
-        char    *lastTraceInfo
+    
+    cdef struct networkAlloc:
+        char *networkID
+        int  num_window
+
+    ctypedef enum PU_t:
+        PU_NONE = 0
+        PU_HOST
+        PU_NUMA
+        PU_SOCKET
+        PU_CORE
+        PU_THREAD
+        PU_MAX
+
+    ctypedef enum memBindPolicy_t:
+        MEMBIND_UNDEFINED = 0
+        MEMBIND_LOCALONLY
+        MEMBIND_LOCALPREFER
+
+    ctypedef enum distributeMethod_t:
+        DISTRIBUTE_UNDEFINED = 0
+        DISTRIBUTE_ANY
+        DISTRIBUTE_BALANCE
+        DISTRIBUTE_PACK
+
+    cdef struct affinityPU:
+        int             num_pu_path
+        unsigned short  *pu_path
+    
+    cdef struct affinitySubtaskData:
+        PU_t            pu_type
+        int             num_pu
+        affinityPU      *pu_list
+        PU_t            expu_type
+        int             expu_scope
+
+    cdef struct affinityTaskData:
+        int        mem_node_id
+        int        num_bind_cpu
+        unsigned short *bind_cpu_list
+        int        num_subtask
+        affinitySubtaskData *sdata
+
+    cdef struct affinityHostData:
+        char         *hostname
+        void         *hptr
+        float        mem_per_task
+        int          num_task
+        affinityTaskData    *tdata
+
+    cdef struct affinityResreqData:
+        PU_t             cpu_bind_level
+        memBindPolicy_t  mem_bind_policy
+        int              num_hosts
+        affinityHostData    *hdata
+
+    cdef struct affinityJobData:
+        int                 num_resreq
+        affinityResreqData  **rdata
 
     cdef struct jobFinishLog:
         int         jobId
         int         userId
-        char        userName[60]    # MAX_LSB_NAME_LEN
+        char        userName[MAX_LSB_NAME_LEN]
         int         options
         int         numProcessors
         int         jStatus
@@ -1051,9 +1507,9 @@ cdef extern from "lsf/lsbatch.h":
         time_t      termTime
         time_t      startTime
         time_t      endTime
-        char        queue[60]        # MAX_LSB_NAME_LEN
+        char        queue[MAX_LSB_NAME_LEN]
         char        *resReq
-        char        fromHost[64]     # MAXHOSTNAMELEN
+        char        fromHost[MAXHOSTNAMELEN]
         char        *cwd
         char        *inFile
         char        *outFile
@@ -1102,7 +1558,82 @@ cdef extern from "lsf/lsbatch.h":
         submit_ext  *submitExt
         int         numhRusages
         hRusage     *hostRusage
+        int         avgMem
+        char        *effectiveResReq
+        char        *srcCluster
+        LS_LONG_INT srcJobId
+        char        *dstCluster
+        LS_LONG_INT dstJobId
+        time_t      forwardTime
+        int         runLimit
+        int         options3
+        char        *flow_id
+        int         acJobWaitTime
+        int         totalProvisionTime
+        char        *outdir
+        int         runTime
+        char        *subcwd
+        int         num_network
+        networkAlloc *networkAlloc
+        affinityJobData *affinity
 
+    cdef struct jobFinish2Log:
+        LS_LONG_INT jobId
+        int         userId
+        char        userName[MAX_LSB_NAME_LEN]
+        int         options
+        int         numProcessors
+        int         jStatus
+        time_t      submitTime
+        time_t      termTime
+        time_t      startTime
+        time_t      endTime
+        char        queue[MAX_LSB_NAME_LEN]
+        char        *resReq
+        char        fromHost[MAXHOSTNAMELEN]
+        char        *cwd
+        char        *inFile
+        char        *outFile
+        char        *jobFile
+        int         numExHosts
+        char        **execHosts
+        int         *slotUsages
+        float       cpuTime
+        char        *jobName
+        char        *command
+        lsfRusage   lsfRusage
+        char        *preExecCmd
+        char        *projectName
+        int         exitStatus
+        int         maxNumProcessors
+        char        *sla
+        int         exitInfo
+        char        *chargedSAAP
+        char        *licenseProject
+        char        *app
+        char        *postExecCmd
+        char        *jgroup
+        int         numhRusages
+        hRusage     *hostRusage
+        char        *execRusage
+        char        *clusterName
+        char        *userGroup
+        int         runtime
+        int         maxMem
+        int         avgMem
+        char        *effectiveResReq
+        time_t      forwardTime
+        int         runLimit
+        int         options3
+        char        *flow_id
+        int         totalProvisionTime
+        char        *outdir
+        int         dcJobFlags
+        char        *subcwd
+        int         num_network
+        networkAlloc *networkAlloc
+        affinityJobData *affinity
+    
     cdef struct calendarLog:
         int     options
         int     userId
@@ -1117,6 +1648,10 @@ cdef extern from "lsf/lsbatch.h":
         char    **reserHosts
         int     idx
         int     jobRmtAttr
+        char    *srcCluster
+        LS_LONG_INT srcJobId
+        LS_LONG_INT dstJobId
+        char    *effectiveResReq
 
     cdef struct jobAcceptLog:
         int         jobId
@@ -1124,6 +1659,17 @@ cdef extern from "lsf/lsbatch.h":
         char        *cluster
         int         idx
         int         jobRmtAttr
+        char        *dstCluster
+        LS_LONG_INT dstJobId
+
+    cdef struct jobAcceptAckLog:
+        int         jobId
+        int         idx
+        int         jobRmtAttr
+        char        *srcCluster
+        LS_LONG_INT srcJobId
+        char        *dstCluster
+        LS_LONG_INT dstJobId
 
     cdef struct statusAckLog:
         int     jobId
@@ -1156,13 +1702,13 @@ cdef extern from "lsf/lsbatch.h":
         int     numOccupyRequests
         void    *occupyReqList
         int     idx
-        char    userName[60]    # MAX_LSB_NAME_LEN
+        char    userName[MAX_LSB_NAME_LEN]
 
     cdef struct jobVacatedLog:
         int     userId
         int     jobId
         int     idx
-        char    userName[60]    # MAX_LSB_NAME_LEN
+        char    userName[MAX_LSB_NAME_LEN]
 
     cdef struct jobForceRequestLog:
         int     userId
@@ -1171,7 +1717,7 @@ cdef extern from "lsf/lsbatch.h":
         int     jobId
         int     idx
         int     options
-        char    userName[60]    # MAX_LSB_NAME_LEN
+        char    userName[MAX_LSB_NAME_LEN]
         char    *queue
 
     cdef struct jobChunkLog:
@@ -1190,12 +1736,14 @@ cdef extern from "lsf/lsbatch.h":
         time_t  postTime
         int     dataStatus
         char    *fileName
-        char    userName[60]    # MAX_LSB_NAME_LEN
+        char    userName[MAX_LSB_NAME_LEN]  
+        int     options
+        int     nextStatusNo
 
     cdef struct jgrpNewLog:
         int     userId
         time_t  submitTime
-        char    userName[60]    # MAX_LSB_NAME_LEN
+        char    userName[MAX_LSB_NAME_LEN]
         char    *depCond
         char    *timeEvent
         char    *groupSpec
@@ -1209,7 +1757,7 @@ cdef extern from "lsf/lsbatch.h":
 
     cdef struct jgrpCtrlLog:
         int     userId
-        char    userName[60]    # MAX_LSB_NAME_LEN
+        char    userName[MAX_LSB_NAME_LEN]
         char    *groupSpec
         int     options
         int     ctrlOp
@@ -1219,10 +1767,16 @@ cdef extern from "lsf/lsbatch.h":
         int     status
         int     oldStatus
 
+    cdef struct networkReq:
+        int options
+        int nInstance
+        int nProtocol
+        char *protocols
+
     cdef struct jobNewLog:
         int         jobId
         int         userId
-        char        userName[60]    # MAX_LSB_NAME_LEN
+        char        userName[MAX_LSB_NAME_LEN]
         int         options
         int         options2
         int         numProcessors
@@ -1232,13 +1786,13 @@ cdef extern from "lsf/lsbatch.h":
         int         sigValue
         int         chkpntPeriod
         int         restartPid
-        int         rLimits[12]     # LSF_RLIM_NLIMITS
-        char        hostSpec[64]    # MAXHOSTNAMELEN
+        int         rLimits[LSF_RLIM_NLIMITS]
+        char        hostSpec[MAXHOSTNAMELEN]
         float       hostFactor
         int         umask
-        char        queue[60]       # MAX_LSB_NAME_LEN
+        char        queue[MAX_LSB_NAME_LEN]
         char        *resReq
-        char        fromHost[64]    # MAXHOSTNAMELEN
+        char        fromHost[MAXHOSTNAMELEN]
         char        *cwd
         char        *chkpntDir
         char        *inFile
@@ -1286,12 +1840,20 @@ cdef extern from "lsf/lsbatch.h":
         char        *notifyCmd
         char        *jobDescription
         submit_ext  *submitExt
-        int         maxmem
-        int         exitstatus
-        int         runtime
-        int         cputime
-        int         slots
-        float       cpufactor
+        char        *srcCluster
+        LS_LONG_INT srcJobId
+        char        *dstCluster
+        LS_LONG_INT dstJobId
+        int         options4
+        int         numAskedClusters
+        char        **askedClusters
+        char        *flow_id
+        char        *subcwd
+        char        *outdir
+        char        *dcTmpls
+        char        *dcVmActions
+        networkReq  network
+
 
     cdef struct jobModLog:
         char        *jobIdStr
@@ -1313,7 +1875,7 @@ cdef extern from "lsf/lsbatch.h":
         int         numAskedHosts
         char        **askedHosts
         char        *resReq
-        int         rLimits[12]    # LSF_RLIM_NLIMITS
+        int         rLimits[LSF_RLIM_NLIMITS]
         char        *hostSpec
         char        *dependCond
         char        *timeEvent
@@ -1360,23 +1922,40 @@ cdef extern from "lsf/lsbatch.h":
         char        *notifyCmd
         char        *jobDescription
         submit_ext  *submitExt
+        char        *srcCluster
+        LS_LONG_INT srcJobId
+        char        *dstCluster
+        LS_LONG_INT dstJobId
+        int         options4
+        int         delOptions4
+        int         numAskedClusters
+        char        **askedClusters
 
     cdef struct jobStartLog:
-        int     jobId
-        int     jStatus
-        int     jobPid
-        int     jobPGid
-        float   hostFactor
-        int     numExHosts
-        char    **execHosts
-        char    *queuePreCmd
-        char    *queuePostCmd
-        int     jFlags
-        char    *userGroup
-        int     idx
-        char    *additionalInfo
-        int     duration4PreemptBackfill
-        int     jFlags2
+        int             jobId
+        int             jStatus
+        int             jobPid
+        int             jobPGid
+        float           hostFactor
+        int             numExHosts
+        char            **execHosts
+        char            *queuePreCmd
+        char            *queuePostCmd
+        int             jFlags
+        char            *userGroup
+        int             idx
+        char            *additionalInfo
+        int             duration4PreemptBackfill
+        int             jFlags2
+        char            *effectiveResReq
+        char            *srcCluster
+        LS_LONG_INT     srcJobId
+        char            *dstCluster
+        LS_LONG_INT     dstJobId
+        int             num_network
+        networkAlloc    *networkAlloc
+        affinityJobData *affinity
+        int             nextStatusNo
 
     cdef struct jobStartAcceptLog:
         int     jobId
@@ -1414,6 +1993,14 @@ cdef extern from "lsf/lsbatch.h":
         int         exitInfo
         int         numhRusages
         hRusage     *hostRusage
+        int         maxMem
+        int         avgMem
+        char        *srcCluster
+        LS_LONG_INT srcJobId
+        char        *dstCluster
+        LS_LONG_INT dstJobId
+        int         maskedJStatus
+        int         nextStatusNo
 
     cdef struct sbdJobStatusLog:
         int       jobId
@@ -1456,13 +2043,49 @@ cdef extern from "lsf/lsbatch.h":
         int         exitInfo
         int         numhRusages
         hRusage     *hostRusage
+        int         maxMem
+        int         avgMem
+        char        *outdir
+
+    cdef struct rmtJobCtrlRecord:
+        char *rmtCluster
+        char *rmtJobCtrlId
+        int  numSuccJobId
+        LS_LONG_INT *succJobIdArray
+        int  numFailJobId
+        LS_LONG_INT *failJobIdArray
+        int  *failReason
 
     cdef struct jobSwitchLog:
-        int     userId
-        int     jobId
-        char    queue[60]    # MAX_LSB_NAME_LEN
-        int     idx
-        char    userName[60] # MAX_LSB_NAME_LEN
+        int         userId
+        int         jobId
+        char        queue[MAX_LSB_NAME_LEN]
+        int         idx
+        char        userName[MAX_LSB_NAME_LEN]
+        char        *srcCluster
+        LS_LONG_INT srcJobId
+        char        *dstCluster
+        LS_LONG_INT dstJobId
+        int         rmtJobCtrlStage
+        int         numRmtCtrlResult
+        rmtJobCtrlRecord *rmtCtrlResult
+
+    cdef struct jobSwitchLog2:
+        int         userId
+        int         jobId
+        char        queue[MAX_LSB_NAME_LEN]
+        char        userName[MAX_LSB_NAME_LEN]
+        int         indexRangeCnt
+        int         *indexRangeStart
+        int         *indexRangeEnd
+        int         *indexRangeStep
+        char        *srcCluster
+        LS_LONG_INT srcJobId
+        char        *dstCluster
+        LS_LONG_INT dstJobId
+        int         rmtJobCtrlStage
+        int         numRmtCtrlResult
+        rmtJobCtrlRecord *rmtCtrlResult
 
     cdef struct jobMoveLog:
         int     userId
@@ -1470,7 +2093,10 @@ cdef extern from "lsf/lsbatch.h":
         int     position
         int     base
         int     idx
-        char    userName[60] # MAX_LSB_NAME_LEN
+        char    userName[MAX_LSB_NAME_LEN]
+        int     rmtJobCtrlStage
+        int     numRmtCtrlResult
+        rmtJobCtrlRecord *rmtCtrlResult
 
     cdef struct chkpntLog:
         int     jobId
@@ -1513,7 +2139,7 @@ cdef extern from "lsf/lsbatch.h":
         char    **askedHosts
         int     userId
         int     idx
-        char    userName[60] # MAX_LSB_NAME_LEN
+        char    userName[MAX_LSB_NAME_LEN]
 
     cdef struct signalLog:
         int     userId
@@ -1521,41 +2147,45 @@ cdef extern from "lsf/lsbatch.h":
         char    *signalSymbol
         int     runCount
         int     idx
-        char    userName[60]    # MAX_LSB_NAME_LEN
+        char    userName[MAX_LSB_NAME_LEN]
+        char            *srcCluster
+        LS_LONG_INT     srcJobId
+        char            *dstCluster
+        LS_LONG_INT     dstJobId
 
     cdef struct queueCtrlLog:
         int     opCode
-        char    queue[60]    # MAX_LSB_NAME_LEN
+        char    queue[MAX_LSB_NAME_LEN]
         int     userId
-        char    userName[60]    # MAX_LSB_NAME_LEN
-        char    message[512]    # MAXLINELEN
+        char    userName[MAX_LSB_NAME_LEN]
+        char    message[MAXLINELEN]
 
     cdef struct newDebugLog:
         int     opCode
         int     level
         int     _logclass
         int     turnOff
-        char    logFileName[40]    # MAXLSFNAMELEN
+        char    logFileName[MAXLSFNAMELEN]
         int     userId
 
     cdef struct hostCtrlLog:
         int     opCode
-        char    host[64]    # MAXHOSTNAMELEN
+        char    host[MAXHOSTNAMELEN]
         int     userId
-        char    userName[60]    # MAX_LSB_NAME_LEN
-        char    message[512]    # MAXLINELEN
+        char    userName[MAX_LSB_NAME_LEN]
+        char    message[MAXLINELEN]
 
     cdef struct hgCtrlLog:
         int     opCode
-        char    host[64]        # MAXHOSTNAMELEN
-        char    grpname[64]     # MAXHOSTNAMELEN
+        char    host[MAXHOSTNAMELEN]
+        char    grpname[MAXHOSTNAMELEN]
         int     userId
-        char    userName[60]    # MAX_LSB_NAME_LEN
-        char    message[512]    # MAXLINELEN
+        char    userName[MAX_LSB_NAME_LEN]
+        char    message[MAXLINELEN]
 
     cdef struct mbdStartLog:
-        char    master[64]     # MAXHOSTNAMELEN
-        char    cluster[40]    # MAXLSFNAMELEN
+        char    master[MAXHOSTNAMELEN]
+        char    cluster[MAXLSFNAMELEN]
         int     numHosts
         int     numQueues
         int     simDiffTime
@@ -1563,10 +2193,10 @@ cdef extern from "lsf/lsbatch.h":
         int     simStatus
 
     cdef struct mbdDieLog:
-        char    master[64]      # MAXHOSTNAMELEN
+        char    master[MAXHOSTNAMELEN]
         int     numRemoveJobs
         int     exitCode
-        char    message[512]    # MAXLINELEN
+        char    message[MAXLINELEN]
 
     cdef struct unfulfillLog:
         int     jobId
@@ -1597,7 +2227,7 @@ cdef extern from "lsf/lsbatch.h":
         char    *creator
 
     cdef struct cpuProfileLog:
-        char    servicePartition[60] # MAX_LSB_NAME_LEN
+        char    servicePartition[MAX_LSB_NAME_LEN]
         int     slotsRequired
         int     slotsAllocated
         int     slotsBorrowed
@@ -1617,7 +2247,7 @@ cdef extern from "lsf/lsbatch.h":
         int     goaltype
         int     state
         int     optimum
-        int     counters[14]    # NUM_JGRP_COUNTERS
+        int     counters[NUM_JGRP_COUNTERS]
 
     cdef struct perfmonLog:
         int     samplePeriod
@@ -1632,6 +2262,11 @@ cdef extern from "lsf/lsbatch.h":
         int     jobMCSend
         int     jobMCReceive
         time_t  startTime
+        LS_LONG_INT mbdFreeHandle
+        int     mbdUsedHandle
+        int     scheduleInterval
+        int     hostRequirements
+        int     jobBuckets
 
     cdef struct taskFinishLog:
         jobFinishLog    jobFinishLog
@@ -1642,78 +2277,257 @@ cdef extern from "lsf/lsbatch.h":
         int             taskExitReason
 
     cdef struct jobResizeNotifyStartLog:
+        int    jobId
+        int    idx
+        int    notifyId
+        int    numResizeHosts
+        char   **resizeHosts
+        int    flags
+        int    nextStatusNo
+    
+    cdef struct jobResizeNotifyAcceptLog:
+        int    jobId
+        int    idx
+        int    notifyId
+        int    resizeNotifyCmdPid
+        int    resizeNotifyCmdPGid
+        int    status
+        int    nextStatusNo
+
+    cdef struct jobResizeNotifyDoneLog:
+        int    jobId
+        int    idx
+        int    notifyId
+        int    status
+        int    nextStatusNo
+
+    cdef struct jobResizeReleaseLog:
+        int    jobId
+        int    idx
+        int    reqId
+        int    options
+        int	   userId
+        char   *userName
+        char   *resizeNotifyCmd
+        int    numResizeHosts
+        char   **resizeHosts
+        affinityJobData *affinity
+        int    nextStatusNo
+
+    cdef struct jobResizeCancelLog:
+        int    jobId
+        int    idx
+        int    userId
+        char   *userName
+        int    nextStatusNo
+
+    cdef struct jobResizeLog:
+        int    jobId
+        int	   idx
+        time_t startTime
+        int    userId
+        char   userName[MAX_LSB_NAME_LEN]
+        int	   resizeType
+        time_t lastResizeStartTime
+        time_t lastResizeFinishTime
+        int    numExecHosts
+        char   **execHosts
+        int	   numResizeHosts
+        char   **resizeHosts
+        affinityJobData *affinity
+
+    cdef struct jobProvisionStartLog: 
+        int    jobId
+        int    idx
+        char   *provision_reqid
+        int    provisionFlags
+        int    hasJobStartLog
+        jobStartLog jobStartLog
+        char   *liveMigrateHost
+
+    cdef struct jobProvisionEndLog:
         int     jobId
         int     idx
-        int     notifyId
-        int     numResizeHosts
-        char    **resizeHosts
+        char    *provision_reqid
+        int     provisionFlags
+        int     state
+        int     numExecHosts
+        char    **execHosts
+        int     numHosts
+        char    **hosts
+        char    *liveMigrateHost
+
+    cdef struct jobStartLimitLog:
+        char    *clusterName
+        LS_LONG_INT  jobId
+        int    options
+        int    lsfLimits[LSF_RLIM_NLIMITS]
+        int    jobRlimits[LSF_RLIM_NLIMITS]
+
+    cdef struct jobStatus2Log:
+        time_t      expectedLogTime
+        int         sampleInterval
+        int         jStatus
+        LS_LONG_INT jobId
+        char        userName[MAX_LSB_NAME_LEN]
+        time_t      submitTime
+        time_t      startTime
+        time_t	    endTime
+        char        queue[MAX_LSB_NAME_LEN]
+        char        *resReq
+        char        *projectName
+        char        *app
+        char        *clusterName
+        char        *userGroup
+        int         numProcessors
+        int         numJobs
+        int         runtimeDelta
+        lsfRusage   lsfRusage
+        int         numhRusages
+        hRusage     *hostRusage
+        int         numExHosts
+        char        **execHosts
+        int         *slotUsages
+        int         jobRmtAttr
+        char        *jgroup
+        char        *execRusage
+        int         num_processors
+        int         reason
+        int         maxMem
+        int         avgMem
+        int         provtimeDelta
+        int         dcJobFlags
+
+    cdef struct jobPendingReasonsLog:	
+        char	userName[MAX_LSB_NAME_LEN]
+        char	queue[MAX_LSB_NAME_LEN]
+        char    *projectName
+        char    *licenseProject
+        char    *resReq
+        char    *app
+        int		num_processors
+        int		mainReason
+        int		subReason
+        int 	detailedReason
+        char    *detail
+        int		numJobs
+        int 	pendingTime
+        int 	sumDetailReasonHosts
+        int 	averagePendingTime
+        time_t	expectedLogTime
+        int		sampleInterval
+        char    *clusterName
+        char    *pendingTimeRanking
+        char    *hostType
+        char    *combinedResReq
+    
+    cdef  struct TaskAffSpec_T:
+        memBindPolicy_t     nodePolicy
+        int                 nodeId
+        int                 numPU
+        int                 numSubTask
+        int                 numCPUs
+        unsigned short      *cpuArray
+
+    cdef struct FanoutHostSpec_T:
+        char          *hostName
+        int           numTasks
+        TaskAffSpec_T *pTaskAffSpec
+        int           numkvs
+        #keyVal        *kvs #TODO: I don't know there this struct is defined
+
+    cdef struct jobFanoutInfoLog:
+        jobFanoutInfoLog    *forw
+        jobFanoutInfoLog    *back  
+        LS_LONG_INT         jobId
+        time_t              dispTimeStamp
+        FanoutHostSpec_T    * pFanoutHostSpec
+        int                 flag
+        int                 nextTaskAffIdx
+        int                 setupChildPid
+    
+    ctypedef jobFanoutInfoLog FanoutInfoListEntry_T
 
     cdef union eventLog:
-        jobNewLog               jobNewLog
-        jobStartLog             jobStartLog
-        jobStatusLog            jobStatusLog
-        sbdJobStatusLog         sbdJobStatusLog
-        jobSwitchLog            jobSwitchLog
-        jobMoveLog              jobMoveLog
-        queueCtrlLog            queueCtrlLog
-        newDebugLog             newDebugLog
-        hostCtrlLog             hostCtrlLog
-        mbdStartLog             mbdStartLog
-        mbdDieLog               mbdDieLog
-        unfulfillLog            unfulfillLog
-        jobFinishLog            jobFinishLog
-        loadIndexLog            loadIndexLog
-        migLog                  migLog
-        calendarLog             calendarLog
-        jobForwardLog           jobForwardLog
-        jobAcceptLog            jobAcceptLog
-        statusAckLog            statusAckLog
-        signalLog               signalLog
-        jobExecuteLog           jobExecuteLog
-        jobMsgLog               jobMsgLog
-        jobMsgAckLog            jobMsgAckLog
-        jobRequeueLog           jobRequeueLog
-        chkpntLog               chkpntLog
-        sigactLog               sigactLog
-        jobOccupyReqLog         jobOccupyReqLog
-        jobVacatedLog           jobVacatedLog
-        jobStartAcceptLog       jobStartAcceptLog
-        jobCleanLog             jobCleanLog
-        jobExceptionLog         jobExceptionLog
-        jgrpNewLog              jgrpNewLog
-        jgrpCtrlLog             jgrpCtrlLog
-        jobForceRequestLog      jobForceRequestLog
-        logSwitchLog            logSwitchLog
-        jobModLog               jobModLog
-        jgrpStatusLog           jgrpStatusLog
-        jobAttrSetLog           jobAttrSetLog
-        jobExternalMsgLog       jobExternalMsgLog
-        jobChunkLog             jobChunkLog
-        sbdUnreportedStatusLog  sbdUnreportedStatusLog
-        rsvFinishLog            rsvFinishLog
-        hgCtrlLog               hgCtrlLog
-        cpuProfileLog           cpuProfileLog
-        dataLoggingLog          dataLoggingLog
-        jobRunRusageLog         jobRunRusageLog
-        eventEOSLog             eventEOSLog
-        slaLog                  slaLog
-        perfmonLog              perfmonLog
-        taskFinishLog           taskFinishLog
-        jobResizeNotifyStartLog jobResizeNotifyStartLog
+        jobNewLog                   jobNewLog
+        jobStartLog                 jobStartLog
+        jobStatusLog                jobStatusLog
+        sbdJobStatusLog             sbdJobStatusLog
+        jobSwitchLog                jobSwitchLog
+        jobSwitchLog2               jobSwitchLog2
+        jobMoveLog                  jobMoveLog
+        queueCtrlLog                queueCtrlLog
+        newDebugLog                 newDebugLog
+        hostCtrlLog                 hostCtrlLog
+        mbdStartLog                 mbdStartLog
+        mbdDieLog                   mbdDieLog
+        unfulfillLog                unfulfillLog
+        jobFinishLog                jobFinishLog
+        loadIndexLog                loadIndexLog
+        migLog                      migLog
+        calendarLog                 calendarLog
+        jobForwardLog               jobForwardLog
+        jobAcceptLog                jobAcceptLog
+        jobAcceptAckLog             jobAcceptAckLog
+        statusAckLog                statusAckLog
+        signalLog                   signalLog
+        jobExecuteLog               jobExecuteLog
+        jobMsgLog                   jobMsgLog
+        jobMsgAckLog                jobMsgAckLog
+        jobRequeueLog               jobRequeueLog
+        chkpntLog                   chkpntLog
+        sigactLog                   sigactLog
+        jobOccupyReqLog             jobOccupyReqLog
+        jobVacatedLog               jobVacatedLog
+        jobStartAcceptLog           jobStartAcceptLog
+        jobCleanLog                 jobCleanLog
+        jobExceptionLog             jobExceptionLog
+        jgrpNewLog                  jgrpNewLog
+        jgrpCtrlLog                 jgrpCtrlLog
+        jobForceRequestLog          jobForceRequestLog
+        logSwitchLog                logSwitchLog
+        jobModLog                   jobModLog
+        jgrpStatusLog               jgrpStatusLog
+        jobAttrSetLog               jobAttrSetLog
+        jobExternalMsgLog           jobExternalMsgLog
+        jobChunkLog                 jobChunkLog
+        sbdUnreportedStatusLog      sbdUnreportedStatusLog
+        rsvFinishLog                rsvFinishLog
+        hgCtrlLog                   hgCtrlLog
+        cpuProfileLog               cpuProfileLog
+        dataLoggingLog              dataLoggingLog
+        jobRunRusageLog             jobRunRusageLog
+        eventEOSLog                 eventEOSLog
+        slaLog                      slaLog
+        perfmonLog                  perfmonLog
+        taskFinishLog               taskFinishLog
+        jobResizeNotifyStartLog     jobResizeNotifyStartLog
+        jobResizeNotifyAcceptLog    jobResizeNotifyAcceptLog
+        jobResizeNotifyDoneLog      jobResizeNotifyDoneLog
+        jobResizeReleaseLog         jobResizeReleaseLog
+        jobResizeCancelLog          jobResizeCancelLog
+        jobResizeLog                jobResizeLog
+        jobFinish2Log               jobFinish2Log
+        jobStartLimitLog            jobStartLimitLog
+        jobStatus2Log               jobStatus2Log
+        jobPendingReasonsLog        jobPendingReasonsLog
+        jobProvisionStartLog        jobProvisionStartLog
+        jobProvisionEndLog          jobProvisionEndLog
+        jobFanoutInfoLog            jobFanoutInfoLog
 
     cdef struct eventRec:
-        char        version[12] # MAX_VERSION_LEN
+        char        version[MAX_VERSION_LEN]
         int         type
         time_t      eventTime
         eventLog    eventLog
 
     cdef struct eventLogFile:
-        char    eventDir[256]   # MAXFILENAMELEN
+        char    eventDir[MAXFILENAMELEN]
         time_t  beginTime, endTime
 
     cdef struct eventLogHandle:
         FILE    *fp
-        char    openEventFile[256]  # MAXFILENAMELEN
+        char    openEventFile[MAXFILENAMELEN]
         int     curOpenFile
         int     lastOpenFile
 
@@ -1741,70 +2555,115 @@ cdef extern from "lsf/lsbatch.h":
         time_t      postTime
         char        *userName
 
-    cdef extern int                     c_lsb_init                  "lsb_init"(char *)
-    cdef extern parameterInfo           *c_lsb_parameterinfo        "lsb_parameterinfo"(char **, int *, int)
-    cdef extern void                    c_lsb_closejobinfo          "lsb_closejobinfo"()
-    cdef extern int                     c_lsb_openjobinfo           "lsb_openjobinfo"(long long int, char *, char *, char *, char *, int)
-    cdef extern jobInfoHead             *c_lsb_openjobinfo_a        "lsb_openjobinfo_a"(long long int, char *, char *, char *, char *, int)
-    cdef extern userInfoEnt             *c_lsb_userinfo             "lsb_userinfo"(char **, int *)
-    cdef extern groupInfoEnt            *c_lsb_usergrpinfo          "lsb_usergrpinfo"(char **, int *, int)
+    
+# THE COMMENTED LINES NEED TO BE IMPLEMENTED
+
+#    cdef extern paramConf               *c_lsb_readparam            "lsb_readparam"(lsConf *)
+#    cdef extern userConf                *c_lsb_readuser             "lsb_readuser"(lsConf *, int, clusterConf *)
+#    cdef extern userConf                *c_lsb_readuser_ex          "lsb_readuser_ex"(lsConf *, int, clusterConf *, sharedConf *)
+#    cdef extern hostConf                *c_lsb_readhost             "lsb_readhost"(lsConf *, lsInfo *, int, clusterConf *)
+#    cdef extern queueConf               *c_lsb_readqueue            "lsb_readqueue"(lsConf *, lsInfo *, int, sharedConf *, clusterConf *)
+    cdef extern hostPartInfoEnt         *c_lsb_hostpartinfo         "lsb_hostpartinfo"(char **, int *) 
+    cdef extern int                     c_lsb_init                  "lsb_init"(char *appName)
+    cdef extern int                     c_lsb_openjobinfo           "lsb_openjobinfo"(LS_LONG_INT, char *, char *, char *, char *, int) 
+    cdef extern jobInfoHead             *c_lsb_openjobinfo_a        "lsb_openjobinfo_a"(LS_LONG_INT, char *,char *, char *, char *, int)
+#    cdef extern jobInfoHeadExt          *c_lsb_openjobinfo_a_ext    "lsb_openjobinfo_a_ext"(LS_LONG_INT, char *, char *, char *, char *, int)
+#    cdef extern jobInfoHeadExt          *c_lsb_openjobinfo_req      "lsb_openjobinfo_req"(jobInfoReq *) 
+#    cdef extern int                     c_lsb_queryjobinfo          "lsb_queryjobinfo"(int, long *,char *)
+#    cdef extern int                     c_lsb_queryjobinfo_2        "lsb_queryjobinfo_2"(jobInfoQuery *,char *)
+#    cdef extern jobInfoHeadExt          *c_lsb_queryjobinfo_ext     "lsb_queryjobinfo_ext"(int, long *,char *)
+#    cdef extern jobInfoHeadExt          *c_lsb_queryjobinfo_ext_2   "lsb_queryjobinfo_ext_2"(jobInfoQuery *,char *)
+#    cdef extern jobInfoEnt              *c_lsb_fetchjobinfo         "lsb_fetchjobinfo"(int *, int, long *, char * )
+#    cdef extern jobInfoEnt              *c_lsb_fetchjobinfo_ext     "lsb_fetchjobinfo_ext"(int *, int, long *, char *, jobInfoHeadExt *)
+#    cdef extern jobInfoEnt              *c_lsb_readjobinfo40        "lsb_readjobinfo40"(int *)
+#    cdef extern LS_LONG_INT             c_lsb_submit40              "lsb_submit40"(submit*, submitReply*)
     cdef extern jobInfoEnt              *c_lsb_readjobinfo          "lsb_readjobinfo"(int *)
-    cdef extern condHostInfoEnt         *c_lsb_hostinfo_cond        "lsb_hostinfo_cond"(char **, int *, char *, int)
+    cdef extern LS_LONG_INT             c_lsb_submit                "lsb_submit"(submit  *, submitReply *)
+#    cdef extern int                     c_lsb_submitPack            "lsb_submitPack"(packSubmit *, packSubmitReply *, int *, int *)
+#    cdef extern jobInfoEnt              *c_lsb_readjobinfo_cond     "lsb_readjobinfo_cond"(int *more, jobInfoHeadExt *jInfoHExt)
+#    cdef extern int                     c_lsb_readframejob          "lsb_readframejob"(LS_LONG_INT, char *, char *, char *, char *, int,  frameJobInfo **)
+    cdef extern void                    c_lsb_closejobinfo          "lsb_closejobinfo"()
+#    cdef extern int                     c_lsb_hostcontrol           "lsb_hostcontrol"(hostCtrlReq *)
+#    cdef extern int                     c_lsb_hghostcontrol         "lsb_hghostcontrol"(hgCtrlReq *, hgCtrlReply* reply)
+    cdef extern queueInfoEnt            *c_lsb_queueinfo            "lsb_queueinfo"(char **queues, int *numQueues, char *host, char *userName, int options)
+    cdef extern int                     c_lsb_reconfig              "lsb_reconfig"(mbdCtrlReq *)
+    cdef extern int                     c_lsb_signaljob             "lsb_signaljob"(LS_LONG_INT, int)
+    cdef extern int                     c_lsb_killbulkjobs          "lsb_killbulkjobs"(signalBulkJobs *)
+    cdef extern int                     c_lsb_msgjob                "lsb_msgjob"(LS_LONG_INT, char *)
+    cdef extern int                     c_lsb_chkpntjob             "lsb_chkpntjob"(LS_LONG_INT, time_t, int)
+    cdef extern int                     c_lsb_deletejob             "lsb_deletejob"(LS_LONG_INT, int, int)
+    cdef extern int                     c_lsb_forcekilljob          "lsb_forcekilljob"(LS_LONG_INT)
+#    cdef extern int                     c_lsb_submitframe           "lsb_submitframe"(submit *, char *, submitReply *)
+    cdef extern int                     c_lsb_requeuejob            "lsb_requeuejob"(jobrequeue *)
+    cdef extern char                    *c_lsb_sysmsg               "lsb_sysmsg"()
+    cdef extern void                    c_lsb_perror                "lsb_perror"(char *)
+#    cdef extern void                    c_lsb_errorByCmd            "lsb_errorByCmd"(char *, char *, int)
+#    cdef extern char                    *c_lsb_sperror              "lsb_sperror"(void *, char *)
+#    cdef extern char                    *c_lsb_sperror              "lsb_sperror"(char *)
+    cdef extern char                    *c_lsb_peekjob              "lsb_peekjob"(LS_LONG_INT)
+    cdef extern int                     c_lsb_mig                   "lsb_mig"(submig *, int *badHostIdx)    
+#    cdef extern clusterInfoEnt          *c_lsb_clusterinfo          "lsb_clusterinfo"(int *, char **, int)
+#    cdef extern clusterInfoEntEx        *c_lsb_clusterinfoEx        "lsb_clusterinfoEx"(int *, char **, int)
     cdef extern hostInfoEnt             *c_lsb_hostinfo             "lsb_hostinfo"(char **, int *)
-    cdef extern groupInfoEnt            *c_lsb_hostgrpinfo          "lsb_hostgrpinfo"(char **, int *, int)
-    cdef extern hostPartInfoEnt         *c_lsb_hostpartinfo         "lsb_hostpartinfo"(char **, int *)
-    cdef extern long long int           c_lsb_modify                "lsb_modify"(submit *, submitReply *, long long int)
+#    cdef extern hostInfoEnt             *c_lsb_hostinfo_ex          "lsb_hostinfo_ex"(char **, int *, char *, int)
+    cdef extern condHostInfoEnt         *c_lsb_hostinfo_cond        "lsb_hostinfo_cond"(char **, int *, char *, int) 
+    cdef extern int                     c_lsb_movejob               "lsb_movejob"(LS_LONG_INT jobId, int *, int)
+    cdef extern int                     c_lsb_switchjob             "lsb_switchjob"(LS_LONG_INT jobId, char *queue)
+    cdef extern int                     c_lsb_queuecontrol          "lsb_queuecontrol"(queueCtrlReq *)
+    cdef extern userInfoEnt             *c_lsb_userinfo             "lsb_userinfo"(char **, int *)
+    cdef extern groupInfoEnt            *c_lsb_hostgrpinfo          "lsb_hostgrpinfo"(char**, int *, int)
+    cdef extern groupInfoEnt            *c_lsb_usergrpinfo          "lsb_usergrpinfo"(char **, int *, int)
+    cdef extern parameterInfo           *c_lsb_parameterinfo        "lsb_parameterinfo"(char **, int *, int)
+    cdef extern LS_LONG_INT             c_lsb_modify                "lsb_modify"(submit *, submitReply *, LS_LONG_INT)
     cdef extern float                   *c_getCpuFactor             "getCpuFactor"(char *, int)
     cdef extern char                    *c_lsb_suspreason           "lsb_suspreason"(int, int, loadIndexLog *)
     cdef extern char                    *c_lsb_pendreason           "lsb_pendreason"(int, int *, jobInfoHead *, loadIndexLog *, int)
-    cdef extern int                     c_lsb_requeuejob            "lsb_requeuejob"(jobrequeue *)
-    cdef extern int                     c_lsb_movejob               "lsb_movejob"(long, int *, int)
-    cdef extern int                     c_lsb_switchjob             "lsb_switchjob"(long, char *)
-    cdef extern char                    *c_lsb_peekjob              "lsb_peekjob"(long)
-    cdef extern int                     c_lsb_deletejob             "lsb_deletejob"(long, int, int)
-    cdef extern int                     c_lsb_signaljob             "lsb_signaljob"(long, int)
-    cdef extern int                     c_lsb_killbulkjobs          "lsb_killbulkjobs"(signalBulkJobs *)
-    cdef extern int                     c_lsb_forcekilljob          "lsb_forcekilljob"(long)
-    cdef extern int                     c_lsb_chkpntjob             "lsb_chkpntjob"(long, time_t, int)
-    cdef extern int                     c_lsb_msgjob                "lsb_msgjob"(long, char *)
-    cdef extern int                     c_lsb_mig                   "lsb_mig"(submig *, int *)
-    cdef extern int                     c_lsb_reconfig              "lsb_reconfig"(mbdCtrlReq *)
-    cdef extern int                     c_lsb_queuecontrol          "lsb_queuecontrol"(queueCtrlReq *)
-    cdef extern queueInfoEnt            *c_lsb_queueinfo            "lsb_queueinfo"(char **, int *, char *, char *, int)
+#    cdef extern calendarInfoEnt         *c_lsb_calendarinfo         "lsb_calendarinfo"(char **, int *, char *)
+#    cdef extern int                     c_lsb_calExprOccs           "lsb_calExprOccs"(char *, int, int, char *, int **)
+#    cdef extern int                     c_lsb_calendarop            "lsb_calendarop"(int, int, char **, char *, char *, int, char **)
+#    cdef extern int                     c_lsb_puteventrec           "lsb_puteventrec"(FILE *, eventRec *)
+#    cdef extern int                     c_lsb_puteventrecRaw        "lsb_puteventrecRaw"(FILE *, eventRec *, char *)
+    cdef extern eventRec                *c_lsb_geteventrec          "lsb_geteventrec"(FILE *, int *)
+    cdef extern int                     c_lsb_geteventrecbyline     "lsb_geteventrecbyline"(char *, eventRec *)
+#    cdef extern eventInfoEnt            *c_lsb_eventinfo            "lsb_eventinfo"(char **, int *, char *)
     cdef extern lsbSharedResourceInfo   *c_lsb_sharedresourceinfo   "lsb_sharedresourceinfo"(char **, int *, char *, int)
-    cdef extern char                    *c_lsb_sysmsg               "lsb_sysmsg"()
-    cdef extern void                    c_lsb_perror                "lsb_perror"(char *)
-
-    # API for advance reservations
-    cdef extern int                     c_lsb_addreservation        "lsb_addreservation" (addRsvRequest *, char *)
-    cdef extern rsvInfoEnt              *c_lsb_reservationinfo      "lsb_reservationinfo" (char *, int *, int)
-    cdef extern int                     c_lsb_removereservation     "lsb_removereservation" (char *)
-
-    # API for job group
+    cdef extern int                     c_lsb_setjobattr            "lsb_setjobattr"(int, jobAttrInfoEnt *)
+#    cdef extern int                     c_lsb_rcvconnect            "lsb_rcvconnect"()
+#    cdef extern int                     c_lsb_sndmsg                "lsb_sndmsg"(lsbMsgHdr *, char *, int)
+#    cdef extern int                     c_lsb_rcvmsg                "lsb_rcvmsg"(lsbMsgHdr *, char **, int)
+    cdef extern int                     c_lsb_runjob                "lsb_runjob"(runJobRequest*)
     cdef extern int                     c_lsb_addjgrp               "lsb_addjgrp"(jgrpAdd *, jgrpReply **)
     cdef extern int                     c_lsb_modjgrp               "lsb_modjgrp"(jgrpMod *, jgrpReply **)
     cdef extern int                     c_lsb_holdjgrp              "lsb_holdjgrp"(char *, int, jgrpReply **)
     cdef extern int                     c_lsb_reljgrp               "lsb_reljgrp"(char *, int, jgrpReply **)
     cdef extern int                     c_lsb_deljgrp               "lsb_deljgrp"(char *, int, jgrpReply **)
+#    cdef extern int                     c_lsb_deljgrp_ext           "lsb_deljgrp_ext"(jgrpCtrl *, jgrpReply **)
     cdef extern jgrp                    *c_lsb_listjgrp             "lsb_listjgrp"(int *)
     cdef extern serviceClass            *c_lsb_serviceClassInfo     "lsb_serviceClassInfo"(int *)
-
-    # API for event records
-    cdef extern eventRec                *c_lsb_geteventrec          "lsb_geteventrec"(FILE *, int *)
-    cdef extern int                     c_lsb_geteventrecbyline     "lsb_geteventrecbyline"(char *, eventRec *)
-
-    # API for submit
-    cdef extern long long int           c_lsb_submit                "lsb_submit"(submit *, submitReply *)
-
-    # API for runjob
-    cdef extern int                     c_lsb_runjob                "lsb_runjob"(runJobRequest *)
-
-    # API for job attribute operations
-    cdef extern int                     c_lsb_setjobattr            "lsb_setjobattr"(int, jobAttrInfoEnt *)
-
-    # API for job external message
+#    cdef extern appInfoEnt              *c_lsb_appInfo              "lsb_appInfo"(int *)
+#    cdef extern void                    c_lsb_freeAppInfoEnts       "lsb_freeAppInfoEnts"(int, appInfoEnt *)
+#    cdef extern char                    *c_lsb_jobid2str            "lsb_jobid2str"(LS_LONG_INT)
+#    cdef extern char                    *c_lsb_jobid2str_r          "lsb_jobid2str_r"(LS_LONG_INT, char[])
+#    cdef extern char                    *c_lsb_jobidinstr           "lsb_jobidinstr"(LS_LONG_INT)
+#    cdef extern char                    *c_lsb_jobidinstr_r         "lsb_jobidinstr_r"(LS_LONG_INT, char[])
     cdef extern int                     c_lsb_postjobmsg            "lsb_postjobmsg"(jobExternalMsgReq *, char *)
     cdef extern int                     c_lsb_readjobmsg            "lsb_readjobmsg"(jobExternalMsgReq *, jobExternalMsgReply *)
+#    cdef extern int                     c_lsb_bulkJobInfoUpdate     "lsb_bulkJobInfoUpdate"(symJobStatusUpdateReqArray *, symJobStatusUpdateReplyArray *)
+    cdef extern int                     c_lsb_addreservation        "lsb_addreservation"(addRsvRequest *, char *)
+    cdef extern int                     c_lsb_removereservation     "lsb_removereservation"(char *)
+    cdef extern rsvInfoEnt              *c_lsb_reservationinfo      "lsb_reservationinfo"(char *, int *, int)
+#    cdef extern int                     c_lsb_getallocFromHostfile  "lsb_getallocFromHostfile"(char ***, char *)
+#    cdef extern int                     c_lsb_launch                "lsb_launch"(char**, char**, int, char**)
+#    cdef extern int                     c_lsb_getalloc              "lsb_getalloc"(char ***)
+#    cdef extern int                     c_lsb_resize_cancel         "lsb_resize_cancel"(LS_LONG_INT)
+#    cdef extern int                     c_lsb_resize_release        "lsb_resize_release"(job_resize_release *)
+#    cdef extern int                     c_lsb_resize_request        "lsb_resize_request"(job_resize_request *)
+#    cdef extern jobDependInfo           *c_lsb_getjobdepinfo        "lsb_getjobdepinfo"(jobDepRequest *)
+#    cdef extern int                     c_lsb_guaranteedResourcePoolInfo    "lsb_guaranteedResourcePoolInfo"(guaranteedResourcePoolInfoReq *, guaranteedResourcePoolEnt **, int *)
+#    cdef extern int                     c_lsb_liveconfig            "lsb_liveconfig"(LiveConfReq *, char **)
+#    cdef extern jobQueryCounters        *c_lsb_queryjobcounters     "lsb_queryjobcounters"(queryInfo *)
+#    cdef extern int                     c_lsb_gpdCtrl               "lsb_gpdCtrl"(int ctrlCode, char *msg, int options)
+
 
 def version():
     """
@@ -4201,7 +5060,7 @@ cdef class lsb_geteventrec:
     def read(self):
         self.record = c_lsb_geteventrec(self.fp, &self.lineNum)
         if self.record != NULL:
-            if self.record.type == 1: # EVENT_JOB_NEW
+            if self.record.type == EVENT_JOB_NEW:
                 self.newJob = &(self.record.eventLog.jobNewLog)
                 askedHosts = []
                 for i from 0 <= i < self.newJob.numAskedHosts:
@@ -4211,24 +5070,27 @@ cdef class lsb_geteventrec:
                     xf.append({'subFn':self.newJob.xf[i].subFn,
                                'execFn':self.newJob.xf[i].execFn,
                                'options':self.newJob.xf[i].options})
-                return {'type':                self.record.type,
-                        'eventType':           'JOB_NEW',
-                        'version':             self.record.version,
-                        'eventTime':           self.record.eventTime,
-                        'jobId':               self.newJob.jobId,
-                        'userId':              self.newJob.userId,
-                        'userName':            self.newJob.userName,
-                        'options':             self.newJob.options,
-                        'options2':            self.newJob.options2,
-                        'options3':            self.newJob.options3,
-                        'numProcessors':       self.newJob.numProcessors,
-                        'submitTime':          self.newJob.submitTime,
-                        'beginTime':           self.newJob.beginTime,
-                        'termTime':            self.newJob.termTime,
-                        'sigValue':            self.newJob.sigValue,
-                        'chkpntPeriod':        self.newJob.chkpntPeriod,
-                        'restartPid':          self.newJob.restartPid,
-                        'rlimits':             {'cpu':      self.newJob.rLimits[0],
+                askedClusters = []
+                for i from 0 <= i < self.newJob.numAskedClusters:
+                    askedClusters.append(self.newJob.askedClusters[i])
+                return {'type':                 self.record.type,
+                        'eventType':            'JOB_NEW',
+                        'version':              self.record.version,
+                        'eventTime':            self.record.eventTime,
+                        'jobId':                self.newJob.jobId,
+                        'userId':               self.newJob.userId,
+                        'userName':             self.newJob.userName,
+                        'options':              self.newJob.options,
+                        'options2':             self.newJob.options2,
+                        'options3':             self.newJob.options3,
+                        'numProcessors':        self.newJob.numProcessors,
+                        'submitTime':           self.newJob.submitTime,
+                        'beginTime':            self.newJob.beginTime,
+                        'termTime':             self.newJob.termTime,
+                        'sigValue':             self.newJob.sigValue,
+                        'chkpntPeriod':         self.newJob.chkpntPeriod,
+                        'restartPid':           self.newJob.restartPid,
+                        'rlimits':              {'cpu':      self.newJob.rLimits[0],
                                                 'file':     self.newJob.rLimits[1],
                                                 'data':     self.newJob.rLimits[2],
                                                 'stack':    self.newJob.rLimits[3],
@@ -4240,51 +5102,77 @@ cdef class lsb_geteventrec:
                                                 'run':      self.newJob.rLimits[9],
                                                 'process':  self.newJob.rLimits[10],
                                                 'thread':   self.newJob.rLimits[11]},
-                        'hostSpec':            self.newJob.hostSpec,
-                        'hostFactor':          self.newJob.hostFactor,
-                        'umask':               self.newJob.umask,
-                        'queue':               self.newJob.queue,
-                        'resReq':              self.newJob.resReq,
-                        'fromHost':            self.newJob.fromHost,
-                        'cwd':                 self.newJob.cwd,
-                        'chkpntDir':           self.newJob.chkpntDir,
-                        'inFile':              self.newJob.inFile,
-                        'outFile':             self.newJob.outFile,
-                        'errFile':             self.newJob.errFile,
-                        'inFileSpool':         self.newJob.inFileSpool,
-                        'commandSpool':        self.newJob.commandSpool,
-                        'jobSpoolDir':         self.newJob.jobSpoolDir,
-                        'subHomeDir':          self.newJob.subHomeDir,
-                        'jobFile':             self.newJob.jobFile,
-                        'numAskedHosts':       self.newJob.numAskedHosts,
-                        'askedHosts':          askedHosts,
-                        'dependCond':          self.newJob.dependCond,
-                        'timeEvent':           self.newJob.timeEvent,
-                        'jobName':             self.newJob.jobName,
-                        'command':             self.newJob.command,
-                        'nxf':                 self.newJob.nxf,
-                        'xf':                  xf,
-                        'preExecCmd':          self.newJob.preExecCmd,
-                        'runtimeEstimation':   self.newJob.runtimeEstimation,
-                        'mailUser':            self.newJob.mailUser,
-                        'projectName':         self.newJob.projectName,
-                        'niosPort':            self.newJob.niosPort,
-                        'maxNumProcessors':    self.newJob.maxNumProcessors,
-                        'schedHostType':       self.newJob.schedHostType,
-                        'loginShell':          self.newJob.loginShell,
-                        'userGroup':           self.newJob.userGroup,
-                        'exceptList':          self.newJob.exceptList,
-                        'idx':                 self.newJob.idx,
-                        'userPriority':        self.newJob.userPriority,
-                        'rsvId':               self.newJob.rsvId,
-                        'jobGroup':            self.newJob.jobGroup,
-                        'extsched':            self.newJob.extsched,
-                        'warningTimePeriod':   self.newJob.warningTimePeriod,
-                        'warningAction':       self.newJob.warningAction,
-                        'sla':                 self.newJob.sla,
-                        'SLArunLimit':         self.newJob.SLArunLimit,
-                        'licenseProject':      self.newJob.licenseProject}
-            elif self.record.type == 2: # EVENT_JOB_START
+                        'hostSpec':             self.newJob.hostSpec,
+                        'hostFactor':           self.newJob.hostFactor,
+                        'umask':                self.newJob.umask,
+                        'queue':                self.newJob.queue,
+                        'resReq':               self.newJob.resReq,
+                        'fromHost':             self.newJob.fromHost,
+                        'cwd':                  self.newJob.cwd,
+                        'chkpntDir':            self.newJob.chkpntDir,
+                        'inFile':               self.newJob.inFile,
+                        'outFile':              self.newJob.outFile,
+                        'errFile':              self.newJob.errFile,
+                        'inFileSpool':          self.newJob.inFileSpool,
+                        'commandSpool':         self.newJob.commandSpool,
+                        'jobSpoolDir':          self.newJob.jobSpoolDir,
+                        'subHomeDir':           self.newJob.subHomeDir,
+                        'jobFile':              self.newJob.jobFile,
+                        'numAskedHosts':        self.newJob.numAskedHosts,
+                        'askedHosts':           askedHosts,
+                        'dependCond':           self.newJob.dependCond,
+                        'timeEvent':            self.newJob.timeEvent,
+                        'jobName':              self.newJob.jobName,
+                        'command':              self.newJob.command,
+                        'nxf':                  self.newJob.nxf,
+                        'xf':                   xf,
+                        'preExecCmd':           self.newJob.preExecCmd,
+                        'runtimeEstimation':    self.newJob.runtimeEstimation,
+                        'mailUser':             self.newJob.mailUser,
+                        'projectName':          self.newJob.projectName,
+                        'niosPort':             self.newJob.niosPort,
+                        'maxNumProcessors':     self.newJob.maxNumProcessors,
+                        'schedHostType':        self.newJob.schedHostType,
+                        'loginShell':           self.newJob.loginShell,
+                        'userGroup':            self.newJob.userGroup,
+                        'exceptList':           self.newJob.exceptList,
+                        'idx':                  self.newJob.idx,
+                        'userPriority':         self.newJob.userPriority,
+                        'rsvId':                self.newJob.rsvId,
+                        'jobGroup':             self.newJob.jobGroup,
+                        'extsched':             self.newJob.extsched,
+                        'warningTimePeriod':    self.newJob.warningTimePeriod,
+                        'warningAction':        self.newJob.warningAction,
+                        'sla':                  self.newJob.sla,
+                        'SLArunLimit':          self.newJob.SLArunLimit,
+                        'licenseProject':       self.newJob.licenseProject,
+                        'options3':             self.newJob.options3,
+                        'app':                  self.newJob.app,
+                        'postExecCmd':          self.newJob.postExecCmd,
+                        'runtimeEstimation':    self.newJob.runtimeEstimation,
+                        'requeueEValues':       self.newJob.requeueEValues,
+                        'initChkpntPeriod':     self.newJob.initChkpntPeriod,
+                        'migThreshold':         self.newJob.migThreshold,
+                        'notifyCmd':            self.newJob.notifyCmd,
+                        'jobDescription':       self.newJob.jobDescription,
+#                        'submitExt':            self.newJob.submitExt,
+                        'srcCluster':           self.newJob.srcCluster,
+                        'srcJobId':             self.newJob.srcJobId,
+                        'dstCluster':           self.newJob.dstCluster,
+                        'dstJobId':             self.newJob.dstJobId,
+                        'options4':             self.newJob.options4,
+                        'numAskedClusters':     self.newJob.numAskedClusters,
+                        'askedClusters':        askedClusters,
+                        'flow_id':              self.newJob.flow_id,
+                        'subcwd':               self.newJob.subcwd,
+                        'outdir':               self.newJob.outdir,
+                        'dcTmpls':              self.newJob.dcTmpls,
+                        'dcVmActions':          self.newJob.dcVmActions,
+                        'network':              {'options':     self.newJob.network.options,
+                                                 'nInstance':   self.newJob.network.nInstance,
+                                                 'nProtocol':   self.newJob.network.nProtocol,
+                                                 'protocols':   self.newJob.network.protocols}}
+            elif self.record.type == EVENT_JOB_START:
                 self.startJob = &(self.record.eventLog.jobStartLog)
                 execHosts = []
                 for i from 0 <= i < self.startJob.numExHosts:
@@ -4307,8 +5195,18 @@ cdef class lsb_geteventrec:
                         'idx':                      self.startJob.idx,
                         'additionalInfo':           self.startJob.additionalInfo,
                         'duration4PreemptBackfill': self.startJob.duration4PreemptBackfill,
-                        'jFlags2':                  self.startJob.jFlags2,}
-            elif self.record.type == 3: # EVENT_JOB_STATUS
+                        'jFlags2':                  self.startJob.jFlags2,
+                        'effectiveResReq':          self.startJob.effectiveResReq,
+                        'srcCluster':               self.startJob.srcCluster,
+                        'srcJobId':                 self.startJob.srcJobId,
+                        'dstCluster':               self.startJob.dstCluster,
+                        'dstJobId':                 self.startJob.dstJobId,
+                        'num_network':              self.startJob.num_network,
+                        'networkAlloc':             {'networkID':   self.startJob.networkAlloc.networkID,
+                                                     'num_window':  self.startJob.networkAlloc.num_window},
+                        #'affinity':                 'TODO',
+                        'nextStatusNo':             self.startJob.nextStatusNo}
+            elif self.record.type == EVENT_JOB_STATUS:
                 self.statusJob = &(self.record.eventLog.jobStatusLog)
                 hostRusage = []
                 for i from 0 <= i < self.statusJob.numhRusages:
@@ -4318,43 +5216,51 @@ cdef class lsb_geteventrec:
                          'utime': self.statusJob.hostRusage[i].utime,
                          'stime': self.statusJob.hostRusage[i].stime}
                     hostRusage.append(d)
-                return {'type':              self.record.type,
-                        'eventType':         'JOB_STATUS',
-                        'version':           self.record.version,
-                        'eventTime':         self.record.eventTime,
-                        'jobId':             self.statusJob.jobId,
-                        'jStatus':           self.statusJob.jStatus,
-                        'reason':            self.statusJob.reason,
-                        'subreasons':        self.statusJob.subreasons,
-                        'cpuTime':           self.statusJob.cpuTime,
-                        'endTime':           self.statusJob.endTime,
-                        'ru':                self.statusJob.ru,
-                        'lsfRusage':         {'ru_utime':            self.statusJob.lsfRusage.ru_utime,
-                                              'ru_stime':            self.statusJob.lsfRusage.ru_stime,
-                                              'ru_maxrss':           self.statusJob.lsfRusage.ru_maxrss,
-                                              'ru_ixrss':            self.statusJob.lsfRusage.ru_ixrss,
-                                              'ru_ismrss':           self.statusJob.lsfRusage.ru_ismrss,
-                                              'ru_idrss':            self.statusJob.lsfRusage.ru_idrss,
-                                              'ru_isrss':            self.statusJob.lsfRusage.ru_isrss,
-                                              'ru_minflt':           self.statusJob.lsfRusage.ru_minflt,
-                                              'ru_majflt':           self.statusJob.lsfRusage.ru_majflt,
-                                              'ru_nswap':            self.statusJob.lsfRusage.ru_nswap,
-                                              'ru_inblock':          self.statusJob.lsfRusage.ru_inblock,
-                                              'ru_oublock':          self.statusJob.lsfRusage.ru_oublock,
-                                              'ru_ioch':             self.statusJob.lsfRusage.ru_ioch,
-                                              'ru_msgsnd':           self.statusJob.lsfRusage.ru_msgsnd,
-                                              'ru_msgrcv':           self.statusJob.lsfRusage.ru_msgrcv,
-                                              'ru_nsignals':         self.statusJob.lsfRusage.ru_nsignals,
-                                              'ru_nvcsw':            self.statusJob.lsfRusage.ru_nvcsw,
-                                              'ru_nivcsw':           self.statusJob.lsfRusage.ru_nivcsw,
-                                              'ru_exutime':          self.statusJob.lsfRusage.ru_exutime},
-                        'jFlags':            self.statusJob.jFlags,
-                        'exitStatus':        self.statusJob.exitStatus,
-                        'idx':               self.statusJob.idx,
-                        'exitInfo':          self.statusJob.exitInfo,
-                        'numhRusages':       self.statusJob.numhRusages,
-                        'hostRusage':        hostRusage}
-            elif self.record.type == 4: # EVENT_JOB_SWITCH
+                return {'type':             self.record.type,
+                        'eventType':        'JOB_STATUS',
+                        'version':          self.record.version,
+                        'eventTime':        self.record.eventTime,
+                        'jobId':            self.statusJob.jobId,
+                        'jStatus':          self.statusJob.jStatus,
+                        'reason':           self.statusJob.reason,
+                        'subreasons':       self.statusJob.subreasons,
+                        'cpuTime':          self.statusJob.cpuTime,
+                        'endTime':          self.statusJob.endTime,
+                        'ru':               self.statusJob.ru,
+                        'lsfRusage':        {'ru_utime':            self.statusJob.lsfRusage.ru_utime,
+                                             'ru_stime':            self.statusJob.lsfRusage.ru_stime,
+                                             'ru_maxrss':           self.statusJob.lsfRusage.ru_maxrss,
+                                             'ru_ixrss':            self.statusJob.lsfRusage.ru_ixrss,
+                                             'ru_ismrss':           self.statusJob.lsfRusage.ru_ismrss,
+                                             'ru_idrss':            self.statusJob.lsfRusage.ru_idrss,
+                                             'ru_isrss':            self.statusJob.lsfRusage.ru_isrss,
+                                             'ru_minflt':           self.statusJob.lsfRusage.ru_minflt,
+                                             'ru_majflt':           self.statusJob.lsfRusage.ru_majflt,
+                                             'ru_nswap':            self.statusJob.lsfRusage.ru_nswap,
+                                             'ru_inblock':          self.statusJob.lsfRusage.ru_inblock,
+                                             'ru_oublock':          self.statusJob.lsfRusage.ru_oublock,
+                                             'ru_ioch':             self.statusJob.lsfRusage.ru_ioch,
+                                             'ru_msgsnd':           self.statusJob.lsfRusage.ru_msgsnd,
+                                             'ru_msgrcv':           self.statusJob.lsfRusage.ru_msgrcv,
+                                             'ru_nsignals':         self.statusJob.lsfRusage.ru_nsignals,
+                                             'ru_nvcsw':            self.statusJob.lsfRusage.ru_nvcsw,
+                                             'ru_nivcsw':           self.statusJob.lsfRusage.ru_nivcsw,
+                                             'ru_exutime':          self.statusJob.lsfRusage.ru_exutime},
+                        'jFlags':           self.statusJob.jFlags,
+                        'exitStatus':       self.statusJob.exitStatus,
+                        'idx':              self.statusJob.idx,
+                        'exitInfo':         self.statusJob.exitInfo,
+                        'numhRusages':      self.statusJob.numhRusages,
+                        'hostRusage':       hostRusage,
+                        'maxMem':           self.statusJob.maxMem,
+                        'avgMem':           self.statusJob.avgMem,
+                        'srcCluster':       self.statusJob.srcCluster,
+                        'srcJobId':         self.statusJob.srcJobId,
+                        'dstCluster':       self.statusJob.dstCluster,
+                        'dstJobId':         self.statusJob.dstJobId,
+                        'maskedJStatus':    self.statusJob.maskedJStatus,
+                        'nextStatusNo':     self.statusJob.nextStatusNo}
+            elif self.record.type == EVENT_JOB_SWITCH:
                 self.switchJob = &(self.record.eventLog.jobSwitchLog)
                 return {'type':                self.record.type,
                         'eventType':           'JOB_SWITCH',
@@ -4364,8 +5270,15 @@ cdef class lsb_geteventrec:
                         'userId':              self.switchJob.userId,
                         'userName':            self.switchJob.userName,
                         'idx':                 self.switchJob.idx,
-                        'queue':               self.switchJob.queue}
-            elif self.record.type == 5: # EVENT_JOB_MOVE
+                        'queue':               self.switchJob.queue,
+                        'srcCluster':          self.switchJob.srcCluster,
+                        'srcJobId':            self.switchJob.srcJobId,
+                        'dstCluster':          self.switchJob.dstCluster,
+                        'dstJobId':            self.switchJob.dstJobId,
+                        'rmtJobCtrlStage':     self.switchJob.rmtJobCtrlStage,
+                        'numRmtCtrlResult':    self.switchJob.numRmtCtrlResult}
+                        #'rmtCtrlResult':      'TODO'}
+            elif self.record.type == EVENT_JOB_MOVE:
                 self.moveJob = &(self.record.eventLog.jobMoveLog)
                 return [self.record.type,
                         "JOB_MOVE",
@@ -4377,7 +5290,7 @@ cdef class lsb_geteventrec:
                         self.moveJob.base,
                         self.moveJob.idx,
                         self.moveJob.userName]
-            elif self.record.type == 6:  # EVENT_QUEUE_CTRL
+            elif self.record.type == EVENT_QUEUE_CTRL:
                 self.queueCtrl = &(self.record.eventLog.queueCtrlLog)
                 return [self.record.type,
                         "QUEUE_CTRL",
@@ -4388,7 +5301,7 @@ cdef class lsb_geteventrec:
                         self.queueCtrl.userId,
                         self.queueCtrl.userName,
                         self.queueCtrl.message]
-            elif self.record.type == 7:  # EVENT_HOST_CTRL
+            elif self.record.type == EVENT_HOST_CTRL:
                 self.hostCtrl = &(self.record.eventLog.hostCtrlLog)
                 return [self.record.type,
                         "HOST_CTRL",
@@ -4399,7 +5312,7 @@ cdef class lsb_geteventrec:
                         self.hostCtrl.userId,
                         self.hostCtrl.userName,
                         self.hostCtrl.message]
-            elif self.record.type == 8:  # EVENT_MBD_DIE
+            elif self.record.type == EVENT_MBD_DIE:
                 self.mbdDie = &(self.record.eventLog.mbdDieLog)
                 return [self.record.type,
                         "MBD_DIE",
@@ -4409,7 +5322,7 @@ cdef class lsb_geteventrec:
                         self.mbdDie.numRemoveJobs,
                         self.mbdDie.exitCode,
                         self.mbdDie.message]
-            elif self.record.type == 9:  # EVENT_MBD_UNFULFILL
+            elif self.record.type == EVENT_MBD_UNFULFILL:
                 self.mbdUnfulfil = &(self.record.eventLog.unfulfillLog)
                 return [self.record.type,
                         "MBD_UNFULFIL",
@@ -4424,7 +5337,7 @@ cdef class lsb_geteventrec:
                         self.mbdUnfulfil.notModified,
                         self.mbdUnfulfil.idx,
                         self.mbdUnfulfil.miscOpts4PendSig]
-            elif self.record.type == 10: # EVENT_JOB_FINISH
+            elif self.record.type == EVENT_JOB_FINISH:
                 self.finishJob = &(self.record.eventLog.jobFinishLog)
                 askedHosts = []
                 for i from 0 <= i < self.finishJob.numAskedHosts:
@@ -4440,93 +5353,112 @@ cdef class lsb_geteventrec:
                          'utime': self.finishJob.hostRusage[i].utime,
                          'stime': self.finishJob.hostRusage[i].stime}
                     hostRusage.append(d)
-                return {'type':                self.record.type,
-                        'eventType':           'JOB_FINISH',
-                        'version':             self.record.version,
-                        'eventTime':           self.record.eventTime,
-                        'jobId':               self.finishJob.jobId,
-                        'userId':              self.finishJob.userId,
-                        'userName':            self.finishJob.userName,
-                        'options':             self.finishJob.options,
-                        'numProcessors':       self.finishJob.numProcessors,
-                        'jStatus':             self.finishJob.jStatus,
-                        'submitTime':          self.finishJob.submitTime,
-                        'beginTime':           self.finishJob.beginTime,
-                        'termTime':            self.finishJob.termTime,
-                        'startTime':           self.finishJob.startTime,
-                        'endTime':             self.finishJob.endTime,
-                        'queue':               self.finishJob.queue,
-                        'resReq':              self.finishJob.resReq,
-                        'fromHost':            self.finishJob.fromHost,
-                        'cwd':                 self.finishJob.cwd,
-                        'inFile':              self.finishJob.inFile,
-                        'outFile':             self.finishJob.outFile,
-                        'errFile':             self.finishJob.errFile,
-                        'inFileSpool':         self.finishJob.inFileSpool,
-                        'commandSpool':        self.finishJob.commandSpool,
-                        'jobFile':             self.finishJob.jobFile,
-                        'numAskedHosts':       self.finishJob.numAskedHosts,
-                        'askedHosts':          askedHosts,
-                        'hostFactor':          self.finishJob.hostFactor,
-                        'numExHosts':          self.finishJob.numExHosts,
-                        'execHosts':           execHosts,
-                        'cpuTime':             self.finishJob.cpuTime,
-                        'jobName':             self.finishJob.jobName,
-                        'command':             self.finishJob.command,
-                        'lsfRusage':           {'ru_utime':            self.finishJob.lsfRusage.ru_utime,
-                                                'ru_stime':            self.finishJob.lsfRusage.ru_stime,
-                                                'ru_maxrss':           self.finishJob.lsfRusage.ru_maxrss,
-                                                'ru_ixrss':            self.finishJob.lsfRusage.ru_ixrss,
-                                                'ru_ismrss':           self.finishJob.lsfRusage.ru_ismrss,
-                                                'ru_idrss':            self.finishJob.lsfRusage.ru_idrss,
-                                                'ru_isrss':            self.finishJob.lsfRusage.ru_isrss,
-                                                'ru_minflt':           self.finishJob.lsfRusage.ru_minflt,
-                                                'ru_majflt':           self.finishJob.lsfRusage.ru_majflt,
-                                                'ru_nswap':            self.finishJob.lsfRusage.ru_nswap,
-                                                'ru_inblock':          self.finishJob.lsfRusage.ru_inblock,
-                                                'ru_oublock':          self.finishJob.lsfRusage.ru_oublock,
-                                                'ru_ioch':             self.finishJob.lsfRusage.ru_ioch,
-                                                'ru_msgsnd':           self.finishJob.lsfRusage.ru_msgsnd,
-                                                'ru_msgrcv':           self.finishJob.lsfRusage.ru_msgrcv,
-                                                'ru_nsignals':         self.finishJob.lsfRusage.ru_nsignals,
-                                                'ru_nvcsw':            self.finishJob.lsfRusage.ru_nvcsw,
-                                                'ru_nivcsw':           self.finishJob.lsfRusage.ru_nivcsw,
-                                                'ru_exutime':          self.finishJob.lsfRusage.ru_exutime},
-                        'dependCond':          self.finishJob.dependCond,
-                        'timeEvent':           self.finishJob.timeEvent,
-                        'preExecCmd':          self.finishJob.preExecCmd,
-                        'mailUser':            self.finishJob.mailUser,
-                        'projectName':         self.finishJob.projectName,
-                        'exitStatus':          self.finishJob.exitStatus,
-                        'maxNumProcessors':    self.finishJob.maxNumProcessors,
-                        'loginShell':          self.finishJob.loginShell,
-                        'idx':                 self.finishJob.idx,
-                        'maxRMem':             self.finishJob.maxRMem,
-                        'maxRSwap':            self.finishJob.maxRSwap,
-                        'rsvId':               self.finishJob.rsvId,
-                        'sla':                 self.finishJob.sla,
-                        'exceptMask':          self.finishJob.exceptMask,
-                        'additionalInfo':      self.finishJob.additionalInfo,
-                        'exitInfo':            self.finishJob.exitInfo,
-                        'warningTimePeriod':   self.finishJob.warningTimePeriod,
-                        'warningAction':       self.finishJob.warningAction,
-                        'chargedSAAP':         self.finishJob.chargedSAAP,
-                        'licenseProject':      self.finishJob.licenseProject,
-                        'app':                 self.finishJob.app,
-                        'postExecCmd':         self.finishJob.postExecCmd,
-                        'runtimeEstimation':   self.finishJob.runtimeEstimation,
-                        'jgroup':              self.finishJob.jgroup,
-                        'options2':            self.finishJob.options2,
-                        'requeueEValues':      self.finishJob.requeueEValues,
-                        'notifyCmd':           self.finishJob.notifyCmd,
-                        'lastResizeTime':      self.finishJob.lastResizeTime,
-                        'jobDescription':      self.finishJob.jobDescription,
-                        'numhRusages':         self.finishJob.numhRusages,
-                        'hostRusage':          hostRusage}
-            elif self.record.type == 11: # EVENT_LOAD_EXEC
+                return {'type':                 self.record.type,
+                        'eventType':            'JOB_FINISH',
+                        'version':              self.record.version,
+                        'eventTime':            self.record.eventTime,
+                        'jobId':                self.finishJob.jobId,
+                        'userId':               self.finishJob.userId,
+                        'userName':             self.finishJob.userName,
+                        'options':              self.finishJob.options,
+                        'numProcessors':        self.finishJob.numProcessors,
+                        'jStatus':              self.finishJob.jStatus,
+                        'submitTime':           self.finishJob.submitTime,
+                        'beginTime':            self.finishJob.beginTime,
+                        'termTime':             self.finishJob.termTime,
+                        'startTime':            self.finishJob.startTime,
+                        'endTime':              self.finishJob.endTime,
+                        'queue':                self.finishJob.queue,
+                        'resReq':               self.finishJob.resReq,
+                        'fromHost':             self.finishJob.fromHost,
+                        'cwd':                  self.finishJob.cwd,
+                        'inFile':               self.finishJob.inFile,
+                        'outFile':              self.finishJob.outFile,
+                        'errFile':              self.finishJob.errFile,
+                        'inFileSpool':          self.finishJob.inFileSpool,
+                        'commandSpool':         self.finishJob.commandSpool,
+                        'jobFile':              self.finishJob.jobFile,
+                        'numAskedHosts':        self.finishJob.numAskedHosts,
+                        'askedHosts':           askedHosts,
+                        'hostFactor':           self.finishJob.hostFactor,
+                        'numExHosts':           self.finishJob.numExHosts,
+                        'execHosts':            execHosts,
+                        'cpuTime':              self.finishJob.cpuTime,
+                        'jobName':              self.finishJob.jobName,
+                        'command':              self.finishJob.command,
+                        'lsfRusage':            {'ru_utime':            self.finishJob.lsfRusage.ru_utime,
+                                                 'ru_stime':            self.finishJob.lsfRusage.ru_stime,
+                                                 'ru_maxrss':           self.finishJob.lsfRusage.ru_maxrss,
+                                                 'ru_ixrss':            self.finishJob.lsfRusage.ru_ixrss,
+                                                 'ru_ismrss':           self.finishJob.lsfRusage.ru_ismrss,
+                                                 'ru_idrss':            self.finishJob.lsfRusage.ru_idrss,
+                                                 'ru_isrss':            self.finishJob.lsfRusage.ru_isrss,
+                                                 'ru_minflt':           self.finishJob.lsfRusage.ru_minflt,
+                                                 'ru_majflt':           self.finishJob.lsfRusage.ru_majflt,
+                                                 'ru_nswap':            self.finishJob.lsfRusage.ru_nswap,
+                                                 'ru_inblock':          self.finishJob.lsfRusage.ru_inblock,
+                                                 'ru_oublock':          self.finishJob.lsfRusage.ru_oublock,
+                                                 'ru_ioch':             self.finishJob.lsfRusage.ru_ioch,
+                                                 'ru_msgsnd':           self.finishJob.lsfRusage.ru_msgsnd,
+                                                 'ru_msgrcv':           self.finishJob.lsfRusage.ru_msgrcv,
+                                                 'ru_nsignals':         self.finishJob.lsfRusage.ru_nsignals,
+                                                 'ru_nvcsw':            self.finishJob.lsfRusage.ru_nvcsw,
+                                                 'ru_nivcsw':           self.finishJob.lsfRusage.ru_nivcsw,
+                                                 'ru_exutime':          self.finishJob.lsfRusage.ru_exutime},
+                        'dependCond':           self.finishJob.dependCond,
+                        'timeEvent':            self.finishJob.timeEvent,
+                        'preExecCmd':           self.finishJob.preExecCmd,
+                        'mailUser':             self.finishJob.mailUser,
+                        'projectName':          self.finishJob.projectName,
+                        'exitStatus':           self.finishJob.exitStatus,
+                        'maxNumProcessors':     self.finishJob.maxNumProcessors,
+                        'loginShell':           self.finishJob.loginShell,
+                        'idx':                  self.finishJob.idx,
+                        'maxRMem':              self.finishJob.maxRMem,
+                        'maxRSwap':             self.finishJob.maxRSwap,
+                        'rsvId':                self.finishJob.rsvId,
+                        'sla':                  self.finishJob.sla,
+                        'exceptMask':           self.finishJob.exceptMask,
+                        'additionalInfo':       self.finishJob.additionalInfo,
+                        'exitInfo':             self.finishJob.exitInfo,
+                        'warningTimePeriod':    self.finishJob.warningTimePeriod,
+                        'warningAction':        self.finishJob.warningAction,
+                        'chargedSAAP':          self.finishJob.chargedSAAP,
+                        'licenseProject':       self.finishJob.licenseProject,
+                        'app':                  self.finishJob.app,
+                        'postExecCmd':          self.finishJob.postExecCmd,
+                        'runtimeEstimation':    self.finishJob.runtimeEstimation,
+                        'jgroup':               self.finishJob.jgroup,
+                        'options2':             self.finishJob.options2,
+                        'requeueEValues':       self.finishJob.requeueEValues,
+                        'notifyCmd':            self.finishJob.notifyCmd,
+                        'lastResizeTime':       self.finishJob.lastResizeTime,
+                        'jobDescription':       self.finishJob.jobDescription,
+                        'numhRusages':          self.finishJob.numhRusages,
+                        'hostRusage':           hostRusage,
+                        'avgMem':               self.finishJob.avgMem,
+                        'effectiveResReq':      self.finishJob.effectiveResReq,
+                        'srcCluster':           self.finishJob.srcCluster,
+                        'srcJobId':             self.finishJob.srcJobId,
+                        'dstCluster':           self.finishJob.dstCluster,
+                        'dstJobId':             self.finishJob.dstJobId,
+                        'forwardTime':          self.finishJob.forwardTime,
+                        'runLimit':             self.finishJob.runLimit,
+                        'options3':             self.finishJob.options3,
+                        'flow_id':              self.finishJob.flow_id,
+                        'acJobWaitTime':        self.finishJob.acJobWaitTime,
+                        'totalProvisionTime':   self.finishJob.totalProvisionTime,
+                        'outdir':               self.finishJob.outdir,
+                        'runTime':              self.finishJob.runTime,
+                        'subcwd':               self.finishJob.subcwd,
+                        'num_network':          self.finishJob.num_network,
+                        'networkAlloc':         {'networkID':   self.finishJob.networkAlloc.networkID,
+                                                 'num_window':  self.finishJob.networkAlloc.num_window}}
+                        #'affinity':             'TODO'}
+            elif self.record.type == EVENT_LOAD_INDEX:
                 return [self.record.type,
-                        "LOAD_EXEC"]
-            elif self.record.type == 12: # EVENT_CHKPNT
+                        "LOAD_INDEX"]
+            elif self.record.type == EVENT_CHKPNT:
                 self.chkpntLog = &(self.record.eventLog.chkpntLog)
                 return [self.record.type,
                         "CHKPNT",
@@ -4538,13 +5470,13 @@ cdef class lsb_geteventrec:
                         self.chkpntLog.ok,
                         self.chkpntLog.flags,
                         self.chkpntLog.idx]
-            elif self.record.type == 13: # EVENT_JOB_MIG
+            elif self.record.type == EVENT_MIG:
                 self.migLog = &(self.record.eventLog.migLog)
                 hosts = []
                 for i from 0 <= i < self.migLog.numAskedHosts:
                     hosts.append(self.migLog.askedHosts[i])
                 return [self.record.type,
-                        "JOB_MIG",
+                        "MIG",
                         self.record.version,
                         self.record.eventTime,
                         self.migLog.jobId,
@@ -4552,10 +5484,10 @@ cdef class lsb_geteventrec:
                         self.migLog.userId,
                         self.migLog.idx,
                         self.migLog.userName]
-            elif self.record.type == 14: # EVENT_PRE_EXEC_START
+            elif self.record.type == EVENT_PRE_EXEC_START:
                 return [self.record.type,
                         "PRE_EXEC_START"]
-            elif self.record.type == 15: # EVENT_MBD_START
+            elif self.record.type == EVENT_MBD_START:
                 self.mbdStart = &(self.record.eventLog.mbdStartLog)
                 return [self.record.type,
                         "MBD_START",
@@ -4565,13 +5497,13 @@ cdef class lsb_geteventrec:
                         self.mbdStart.cluster,
                         self.mbdStart.numHosts,
                         self.mbdStart.numQueues]
-            elif self.record.type == 16: # EVENT_JOB_ROUTE
+            elif self.record.type == EVENT_JOB_ROUTE:
                 return [self.record.type,
                         "JOB_ROUTE"]
-            elif self.record.type == 17: # EVENT_JOB_MODIFY
+            elif self.record.type == EVENT_JOB_MODIFY:
                 return [self.record.type,
                         "JOB_MODIFY"]
-            elif self.record.type == 18: # EVENT_JOB_SIGNAL
+            elif self.record.type == EVENT_JOB_SIGNAL:
                 self.signalJob = &(self.record.eventLog.signalLog)
                 return {'type':            self.record.type,
                         'eventType':       'JOB_SIGNAL',
@@ -4582,8 +5514,12 @@ cdef class lsb_geteventrec:
                         'signalSymbol':    self.signalJob.signalSymbol,
                         'runCount':        self.signalJob.runCount,
                         'idx':             self.signalJob.idx,
-                        'userName':        self.signalJob.userName}
-            elif self.record.type == 19: # EVENT_CAL_NEW
+                        'userName':        self.signalJob.userName,
+                        'srcCluster':      self.signalJob.srcCluster,
+                        'srcJobId':        self.signalJob.srcJobId,
+                        'dstCluster':      self.signalJob.dstCluster,
+                        'dstJobId':        self.signalJob.dstJobId}
+            elif self.record.type == EVENT_CAL_NEW:
                 self.calendarLog = &(self.record.eventLog.calendarLog)
                 return [self.record.type,
                         "CAL_NEW",
@@ -4594,7 +5530,7 @@ cdef class lsb_geteventrec:
                         self.calendarLog.name,
                         self.calendarLog.desc,
                         self.calendarLog.calExpr]
-            elif self.record.type == 20: # EVENT_CAL_MODIFY
+            elif self.record.type == EVENT_CAL_MODIFY:
                 self.calendarLog = &(self.record.eventLog.calendarLog)
                 return [self.record.type,
                         "CAL_MODIFY",
@@ -4605,7 +5541,7 @@ cdef class lsb_geteventrec:
                         self.calendarLog.name,
                         self.calendarLog.desc,
                         self.calendarLog.calExpr]
-            elif self.record.type == 21: # EVENT_CAL_DELETE
+            elif self.record.type == EVENT_CAL_DELETE:
                 self.calendarLog = &(self.record.eventLog.calendarLog)
                 return [self.record.type,
                         "CAL_DELETE",
@@ -4616,7 +5552,7 @@ cdef class lsb_geteventrec:
                         self.calendarLog.name,
                         self.calendarLog.desc,
                         self.calendarLog.calExpr]
-            elif self.record.type == 22: # EVENT_JOB_FORWARD
+            elif self.record.type == EVENT_JOB_FORWARD:
                 self.forwardJob = &(self.record.eventLog.jobForwardLog)
                 hosts = []
                 for i from 0 <= i < self.forwardJob.numReserHosts:
@@ -4630,7 +5566,7 @@ cdef class lsb_geteventrec:
                         hosts,
                         self.forwardJob.idx,
                         self.forwardJob.jobRmtAttr]
-            elif self.record.type == 23: # EVENT_JOB_ACCEPT
+            elif self.record.type == EVENT_JOB_ACCEPT:
                 self.acceptJob = &(self.record.eventLog.jobAcceptLog)
                 return [self.record.type,
                         "JOB_ACCEPT",
@@ -4641,7 +5577,7 @@ cdef class lsb_geteventrec:
                         self.acceptJob.cluster,
                         self.acceptJob.idx,
                         self.acceptJob.jobRmtAttr]
-            elif self.record.type == 24: # EVENT_STATUS_ACK
+            elif self.record.type == EVENT_STATUS_ACK:
                 self.ackLog = &(self.record.eventLog.statusAckLog)
                 return [self.record.type,
                         "STATUS_ACK",
@@ -4650,7 +5586,7 @@ cdef class lsb_geteventrec:
                         self.ackLog.jobId,
                         self.ackLog.statusNum,
                         self.ackLog.idx]
-            elif self.record.type == 25: # EVENT_JOB_EXECUTE
+            elif self.record.type == EVENT_JOB_EXECUTE:
                 self.executeJob = &(self.record.eventLog.jobExecuteLog)
                 return [self.record.type,
                         "JOB_EXECUTE",
@@ -4669,7 +5605,7 @@ cdef class lsb_geteventrec:
                         self.executeJob.position,
                         self.executeJob.execRusage,
                         self.executeJob.duration4PreemptBackfill]
-            elif self.record.type == 26: # EVENT_JOB_MSG
+            elif self.record.type == EVENT_JOB_MSG:
                 self.jobMsg = &(self.record.eventLog.jobMsgLog)
                 return [self.record.type,
                         "JOB_MSG",
@@ -4683,7 +5619,7 @@ cdef class lsb_geteventrec:
                         self.jobMsg.dest,
                         self.jobMsg.msg,
                         self.jobMsg.idx]
-            elif self.record.type == 27: # EVENT_JOB_MSG_ACK
+            elif self.record.type == EVENT_JOB_MSG_ACK:
                 self.jobMsgAck = &(self.record.eventLog.jobMsgAckLog)
                 return [self.record.type,
                         "JOB_MSG_ACK",
@@ -4697,7 +5633,7 @@ cdef class lsb_geteventrec:
                         self.jobMsgAck.dest,
                         self.jobMsgAck.msg,
                         self.jobMsgAck.idx]
-            elif self.record.type == 28: # EVENT_JOB_REQUEUE
+            elif self.record.type == EVENT_JOB_REQUEUE:
                 self.requeueJob = &(self.record.eventLog.jobRequeueLog)
                 return {'type':            self.record.type,
                         'eventType':       'JOB_REQUEUE',
@@ -4705,7 +5641,7 @@ cdef class lsb_geteventrec:
                         'eventTime':       self.record.eventTime,
                         'jobId':           self.requeueJob.jobId,
                         'idx':             self.requeueJob.idx}
-            elif self.record.type == 29: # EVENT_JOB_OCCUPY_REQ
+            elif self.record.type == EVENT_JOB_OCCUPY_REQ:
                 self.jobOccupyReq = &(self.record.eventLog.jobOccupyReqLog)
                 return [self.record.type,
                         "JOB_OCCUPY_REQ",
@@ -4717,7 +5653,7 @@ cdef class lsb_geteventrec:
                         #void *occupyReqList,
                         jobOccupyReq.idx,
                         jobOccupyReq.userName]
-            elif self.record.type == 30: # EVENT_JOB_VACATED
+            elif self.record.type == EVENT_JOB_VACATED:
                 self.vacateJob = &(self.record.eventLog.jobVacatedLog)
                 return [self.record.type,
                         "JOB_VACATED",
@@ -4727,7 +5663,7 @@ cdef class lsb_geteventrec:
                         self.vacateJob.jobId,
                         self.vacateJob.idx,
                         self.vacateJob.userName]
-            elif self.record.type == 32: # EVENT_JOB_SIGACT
+            elif self.record.type == EVENT_JOB_SIGACT:
                 self.sigactJob = &(self.record.eventLog.sigactLog)
                 return [self.record.type,
                         "JOB_SIGACT",
@@ -4742,7 +5678,7 @@ cdef class lsb_geteventrec:
                         self.sigactJob.signalSymbol,
                         self.sigactJob.actStatus,
                         self.sigactJob.idx]
-            elif self.record.type == 34: # EVENT_SBD_JOB_STATUS
+            elif self.record.type == EVENT_SBD_JOB_STATUS:
                 self.sbdJobStatus = &(self.record.eventLog.sbdJobStatusLog)
                 return [self.record.type,
                         "SBD_JOB_STATUS",
@@ -4762,7 +5698,7 @@ cdef class lsb_geteventrec:
                         self.sbdJobStatus.idx,
                         self.sbdJobStatus.sigValue,
                         self.sbdJobStatus.exitInfo]
-            elif self.record.type == 35: # EVENT_JOB_START_ACCEPT
+            elif self.record.type == EVENT_JOB_START_ACCEPT:
                 self.jobStartAccept = &(self.record.eventLog.jobStartAcceptLog)
                 return [self.record.type,
                         "JOB_START_ACCEPT",
@@ -4772,7 +5708,7 @@ cdef class lsb_geteventrec:
                         self.jobStartAccept.jobPid,
                         self.jobStartAccept.jobPGid,
                         self.jobStartAccept.idx]
-            elif self.record.type == 36: # EVENT_CAL_UNDELETE
+            elif self.record.type == EVENT_CAL_UNDELETE:
                 self.calendarLog = &(self.record.eventLog.calendarLog)
                 return [self.record.type,
                         "CAL_UNDELETE",
@@ -4783,7 +5719,7 @@ cdef class lsb_geteventrec:
                         self.calendarLog.name,
                         self.calendarLog.desc,
                         self.calendarLog.calExpr]
-            elif self.record.type == 37: # EVENT_JOB_CLEAN
+            elif self.record.type == EVENT_JOB_CLEAN:
                 self.cleanJob = &(self.record.eventLog.jobCleanLog)
                 return {'type':            self.record.type,
                         'eventType':       'JOB_CLEAN',
@@ -4791,7 +5727,7 @@ cdef class lsb_geteventrec:
                         'eventTime':       self.record.eventTime,
                         'jobId':           self.cleanJob.jobId,
                         'idx':             self.cleanJob.idx}
-            elif self.record.type == 38: # EVENT_JOB_EXCEPTION
+            elif self.record.type == EVENT_JOB_EXCEPTION:
                 self.exceptionJob = &(self.record.eventLog.jobExceptionLog)
                 return [self.record.type,
                         "JOB_EXCEPTION",
@@ -4803,7 +5739,7 @@ cdef class lsb_geteventrec:
                         self.exceptionJob.timeEvent,
                         self.exceptionJob.exceptInfo,
                         self.exceptionJob.idx]
-            elif self.record.type == 39: # EVENT_JGRP_ADD
+            elif self.record.type == EVENT_JGRP_ADD:
                 self.jgrpNew = &(self.record.eventLog.jgrpNewLog)
                 return [self.record.type,
                         "JGRP_ADD",
@@ -4819,7 +5755,7 @@ cdef class lsb_geteventrec:
                         self.jgrpNew.delOptions,
                         self.jgrpNew.delOptions2,
                         self.jgrpNew.fromPlatform]
-            elif self.record.type == 40: # EVENT_JGRP_MOD
+            elif self.record.type == EVENT_JGRP_MOD:
                 self.jgrpNew = &(self.record.eventLog.jgrpNewLog)
                 return [self.record.type,
                         "JGRP_MOD",
@@ -4835,7 +5771,7 @@ cdef class lsb_geteventrec:
                         self.jgrpNew.delOptions,
                         self.jgrpNew.delOptions2,
                         self.jgrpNew.fromPlatform]
-            elif self.record.type == 41: # EVENT_JGRP_CTRL
+            elif self.record.type == EVENT_JGRP_CTRL:
                 self.jgrpCtrl = &(self.record.eventLog.jgrpCtrlLog)
                 return [self.record.type,
                         "JGRP_CTRL",
@@ -4846,7 +5782,7 @@ cdef class lsb_geteventrec:
                         self.jgrpCtrl.groupSpec,
                         self.jgrpCtrl.options,
                         self.jgrpCtrl.ctrlOp]
-            elif self.record.type == 42: # EVENT_JOB_FORCE
+            elif self.record.type == EVENT_JOB_FORCE:
                 self.jobForceRequest = &(self.record.eventLog.jobForceRequestLog)
                 exHosts = []
                 for i from 0 <= i < self.jobForceRequest.numExecHosts:
@@ -4864,14 +5800,14 @@ cdef class lsb_geteventrec:
                         self.jobForceRequest.options,
                         self.jobForceRequest.userName,
                         queue]
-            elif self.record.type == 43: # EVENT_LOG_SWITCH
+            elif self.record.type == EVENT_LOG_SWITCH:
                 self.logSwitch = &(self.record.eventLog.logSwitchLog)
                 return {'type':         self.record.type,
                         'eventType':    "LOG_SWITCH",
                         'version':      self.record.version,
                         'eventTime':    self.record.eventTime,
                         'lastJobId':    self.logSwitch.lastJobId}
-            elif self.record.type == 44: # EVENT_JOB_MODIFY2
+            elif self.record.type == EVENT_JOB_MODIFY2:
                 self.jobMod2 = &(self.record.eventLog.jobModLog)
                 askedHosts = []
                 for i from 0 <= i < self.jobMod2.numAskedHosts:
@@ -4902,6 +5838,9 @@ cdef class lsb_geteventrec:
                 if self.jobMod2.userGroup: userGroup = self.jobMod2.userGroup
                 if self.jobMod2.exceptList: exceptList = self.jobMod2.exceptList
                 if self.jobMod2.userPriority: userPriority = self.jobMod2.userPriority
+                askedClusters = []
+                for i from 0 <= i < self.jobMod2.numAskedClusters:
+                    askedClusters.append(self.jobMod2.askedClusters[i])
                 return {'type':              self.record.type,
                         'eventType':         'JOB_MODIFY2',
                         'version':           self.record.version,
@@ -4981,8 +5920,16 @@ cdef class lsb_geteventrec:
                         'initChkpntPeriod':  self.jobMod2.initChkpntPeriod,
                         'migThreshold':      self.jobMod2.migThreshold,
                         'notifyCmd':         self.jobMod2.notifyCmd,
-                        'jobDescription':    self.jobMod2.jobDescription}
-            elif self.record.type == 45: # EVENT_JGRP_STATUS
+                        'jobDescription':    self.jobMod2.jobDescription,
+                        'srcCluster':        self.jobMod2.srcCluster,
+                        'srcJobId':          self.jobMod2.srcJobId,
+                        'dstCluster':        self.jobMod2.dstCluster,
+                        'dstJobId':          self.jobmod2.dstJobId,
+                        'options4':          self.jobmod2.options4,
+                        'delOptions4':       self.jobmod2.delOptions4,
+                        'numAskedClusters':  self.jobmod2.numAskedClusters,
+                        'askedClusters':     askedClusters,}
+            elif self.record.type == EVENT_JGRP_STATUS:
                 self.jgrpLog = &(self.record.eventLog.jgrpStatusLog)
                 return [self.record.type,
                         "JGRP_STATUS",
@@ -4991,7 +5938,7 @@ cdef class lsb_geteventrec:
                         self.jgrpLog.groupSpec,
                         self.jgrpLog.status,
                         self.jgrpLog.oldStatus]
-            elif self.record.type == 46: # EVENT_JOB_ATTR_SET
+            elif self.record.type == EVENT_JOB_ATTR_SET:
                 self.jobAttrSet = &(self.record.eventLog.jobAttrSetLog)
                 return [self.record.type,
                         "JOB_ATTR_SET",
@@ -5002,7 +5949,7 @@ cdef class lsb_geteventrec:
                         self.jobAttrSet.uid,
                         self.jobAttrSet.port,
                         self.jobAttrSet.hostname]
-            elif self.record.type == 47: # EVENT_JOB_EXT_MSG
+            elif self.record.type == EVENT_JOB_EXT_MSG:
                 self.jobExtMsg = &(self.record.eventLog.jobExternalMsgLog)
                 return [self.record.type,
                         "JOB_EXT_MSG",
@@ -5018,10 +5965,10 @@ cdef class lsb_geteventrec:
                         self.jobExtMsg.dataStatus,
                         #self.jobExtMsg.fileName,
                         self.jobExtMsg.userName]
-            elif self.record.type == 48: # EVENT_JOB_ATTA_DATA
+            elif self.record.type == EVENT_JOB_ATTA_DATA:
                 return [self.record.type,
                         "JOB_ATTR_DATA"]
-            elif self.record.type == 49: # EVENT_JOB_CHUNK
+            elif self.record.type == EVENT_JOB_CHUNK:
                 self.chunkJob = &(self.record.eventLog.jobChunkLog)
                 jobs = []
                 for i from 0 <= i < self.chunkJob.membSize:
@@ -5035,7 +5982,7 @@ cdef class lsb_geteventrec:
                         self.record.eventTime,
                         jobs,
                         hosts]
-            elif self.record.type == 50: # EVENT_SBD_UNREPORTED_STATUS
+            elif self.record.type == EVENT_SBD_UNREPORTED_STATUS:
                 self.sbdUnreportedStatus = &(self.record.eventLog.sbdUnreportedStatusLog)
                 return [self.record.type,
                         "SBD_UNREPORTED_STATUS",
@@ -5061,7 +6008,7 @@ cdef class lsb_geteventrec:
                         self.sbdUnreportedStatus.seq,
                         self.sbdUnreportedStatus.idx,
                         self.sbdUnreportedStatus.exitInfo]
-            elif self.record.type == 51: # EVENT_ADRSV_FINISH
+            elif self.record.type == EVENT_ADRSV_FINISH:
                 self.rsvFinish = &(self.record.eventLog.rsvFinishLog)
                 return [self.record.type,
                         "ADRSV_FINISH",
@@ -5077,7 +6024,7 @@ cdef class lsb_geteventrec:
                         self.rsvFinish.timeWindow,
                         self.rsvFinish.duration,
                         self.rsvFinish.creator]
-            elif self.record.type == 52: # EVENT_HGHOST_CTRL
+            elif self.record.type == EVENT_HGHOST_CTRL:
                 self.hgCtrl = &(self.record.eventLog.hgCtrlLog)
                 return [self.record.type,
                         "HGRP_CTRL",
@@ -5089,7 +6036,7 @@ cdef class lsb_geteventrec:
                         self.hgCtrl.userId,
                         self.hgCtrl.userName,
                         self.hgCtrl.message]
-            elif self.record.type == 53: # EVENT_CPUPROFILE_STATUS
+            elif self.record.type == EVENT_CPUPROFILE_STATUS:
                 self.cpuProfile = &(self.record.eventLog.cpuProfileLog)
                 return [self.record.type,
                         "CPUPRPOFILE_STATUS",
@@ -5100,13 +6047,58 @@ cdef class lsb_geteventrec:
                         self.cpuProfile.slotsAllocated,
                         self.cpuProfile.slotsBorrowed,
                         self.cpuProfile.slotsLent]
-            elif self.record.type == 54: # EVENT_DATA_LOGGING
+            elif self.record.type == EVENT_DATA_LOGGING:
                 self.dataLogging = &(self.record.eventLog.dataLoggingLog)
                 return [self.record.type,
                         "DATA_LOGGING",
                         self.record.version,
                         self.record.eventTime,
                         self.dataLogging.loggingTime]
+            #TODO: they need to be implemented
+            elif self.record.type == EVENT_JOB_RUN_RUSAGE:
+                pass
+            elif self.record.type == EVENT_END_OF_STREAM:
+                pass
+            elif self.record.type == EVENT_SLA_RECOMPUTE:
+                pass
+            elif self.record.type == EVENT_METRIC_LOG:
+                pass
+            elif self.record.type == EVENT_TASK_FINISH:
+                pass
+            elif self.record.type == EVENT_JOB_RESIZE_NOTIFY_START:
+                pass
+            elif self.record.type == EVENT_JOB_RESIZE_NOTIFY_ACCEPT:
+                pass
+            elif self.record.type == EVENT_JOB_RESIZE_NOTIFY_DONE:
+                pass
+            elif self.record.type == EVENT_JOB_RESIZE_RELEASE:
+                pass
+            elif self.record.type == EVENT_JOB_RESIZE_CANCEL:
+                pass
+            elif self.record.type == EVENT_JOB_RESIZE:
+                pass
+            elif self.record.type == EVENT_JOB_ARRAY_ELEMENT:
+                pass
+            elif self.record.type == EVENT_MBD_SIM_STATUS:
+                pass
+            elif self.record.type == EVENT_JOB_FINISH2:
+                pass
+            elif self.record.type == EVENT_JOB_STARTLIMIT:
+                pass
+            elif self.record.type == EVENT_JOB_STATUS2:
+                pass
+            elif self.record.type == EVENT_JOB_PENDING_REASONS:
+                pass
+            elif self.record.type == EVENT_JOB_SWITCH2:
+                pass
+            elif self.record.type == EVENT_JOB_ACCEPTACK:
+                pass
+            elif self.record.type == EVENT_JOB_PROVISION_START:
+                pass
+            elif self.record.type == EVENT_JOB_PROVISION_END:
+                pass
+            elif self.record.type == EVENT_JOB_FANOUT_INFO:
+                pass
             else:
                 return ["UNKNOWN"]
         else:
