@@ -4114,7 +4114,7 @@ cdef class lsb_geteventrec:
     cdef int tail_file
     cdef int position
     cdef char *raw_line
-    cdef eventRec *record
+    cdef eventRec record
     cdef jobNewLog *newJob
     cdef jobStartLog *startJob
     cdef jobStatusLog *statusJob
