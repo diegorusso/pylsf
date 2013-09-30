@@ -26,6 +26,7 @@ cdef extern from "stdio.h":
     int fclose(FILE *fp)
     int fseek(FILE *stream, long offset, int whence)
     long ftell(FILE *stream)
+    char *fgets(char *s, int size, FILE *stream)
     int SEEK_END
     int SEEK_SET
 
@@ -4110,9 +4111,9 @@ cdef class lsb_geteventrec:
 
     cdef char *eventFile
     cdef FILE *fp
-    cdef int lineNum
     cdef int tail_file
     cdef int position
+    cdef char *raw_line
     cdef eventRec *record
     cdef jobNewLog *newJob
     cdef jobStartLog *startJob
@@ -4163,12 +4164,12 @@ cdef class lsb_geteventrec:
         self.eventFile = event_file
         self.tail_file = tail_file
         self.position = position
-        self.lineNum = 0
         self.record
         self.newJob
         self.startJob
         self.statusJob
         self.fp
+        self.raw_line = ""
         self.__open()
 
     def __dealloc__(self):
@@ -4199,8 +4200,15 @@ cdef class lsb_geteventrec:
         return ftell(self.fp)
 
     def read(self):
-        self.record = c_lsb_geteventrec(self.fp, &self.lineNum)
-        if self.record != NULL:
+        result = -1
+        offset = self.foffset()
+        if fgets(self.raw_line, 1000000, self.fp) != NULL:
+            result = c_lsb_geteventrecbyline(self.raw_line, &self.record)
+        else:
+            if offset < self.foffset():
+                print "half line"
+                fseek(self.fp, of, SEEK_SET)
+        if result == 0:
             if self.record.type == 1: # EVENT_JOB_NEW
                 self.newJob = &(self.record.eventLog.jobNewLog)
                 askedHosts = []
