@@ -6,7 +6,7 @@ PyLSF : Pyrex module for interfacing to Platform LSF 9
 import os
 import string
 import itertools
-from os import getenv
+from os import getenv, fstat
 
 cdef extern from "string.h":
     void* memset(void*, int, unsigned long int)
@@ -4190,6 +4190,8 @@ cdef class lsb_geteventrec:
         return self
 
     def __next__(self):
+        stat = os.fstat(self.fp)
+        print stat.st_size
         a = self.read()
         if not a:
             raise StopIteration
@@ -4201,13 +4203,15 @@ cdef class lsb_geteventrec:
 
     def read(self):
         result = -1
-        offset = self.foffset()
+        offset = self.foffset() #keep track of the offset
         if fgets(self.raw_line, 1000000, self.fp) != NULL:
+            # If it reads an entire line, he will parse it, storing data in self.record
             result = c_lsb_geteventrecbyline(self.raw_line, &self.record)
         else:
+            # Something went wrong and I check if it has read something
             if offset < self.foffset():
-                print "half line"
-                fseek(self.fp, of, SEEK_SET)
+                #If yes, I will set the offset to the beginning of the line
+                fseek(self.fp, offset, SEEK_SET)
         if result == 0:
             if self.record.type == 1: # EVENT_JOB_NEW
                 self.newJob = &(self.record.eventLog.jobNewLog)
