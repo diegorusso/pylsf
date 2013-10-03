@@ -6,15 +6,29 @@ PyLSF : Pyrex module for interfacing to Platform LSF 9
 import os
 import string
 import itertools
-from os import getenv, fstat
+from os import getenv
+
+cdef extern from "sys/types.h":
+    ctypedef unsigned char      u_char
+    ctypedef unsigned short     u_short
+    ctypedef unsigned int       u_int
+    ctypedef unsigned long      u_long
+ 
+    ctypedef signed char  int8_t
+    ctypedef unsigned char   uint8_t
+    ctypedef signed int  int16_t
+    ctypedef unsigned int    uint16_t
+    ctypedef signed long int     int32_t
+    ctypedef unsigned long int   uint32_t
+    ctypedef signed long long int    int64_t
+    ctypedef unsigned long long int  uint64_t
+
+    ctypedef long time_t
 
 cdef extern from "string.h":
     void* memset(void*, int, unsigned long int)
 
 cdef extern from "stdlib.h":
-    ctypedef long long size_t
-    ctypedef signed long long int64_t
-    ctypedef unsigned long long uint64_t
     void free(void *__ptr)
     void* malloc(size_t size)
     void* calloc(unsigned int nmemb, unsigned int size)
@@ -34,9 +48,6 @@ cdef extern from "Python.h":
     object PyCObject_FromVoidPtr(void* cobj, void (*destr)(void *))
     void* PyCObject_AsVoidPtr(object)
     cdef FILE *PyFile_AsFile(object file)
-
-cdef extern from "time.h":
-    ctypedef int time_t
 
 cdef char** pyStringSeqToStringArray(seq):
     cdef char **msgArray
@@ -4159,16 +4170,11 @@ cdef class lsb_geteventrec:
     cdef sbdUnreportedStatusLog *sbdUnreportedStatus
     cdef cpuProfileLog *cpuProfile
     cdef dataLoggingLog *dataLogging
-
+    
     def __init__(self, event_file, position=0, tail_file=False):
         self.eventFile = event_file
         self.tail_file = tail_file
         self.position = position
-        self.record
-        self.newJob
-        self.startJob
-        self.statusJob
-        self.fp
         self.raw_line = ""
         self.__open()
 
@@ -4190,8 +4196,7 @@ cdef class lsb_geteventrec:
         return self
 
     def __next__(self):
-        stat = os.fstat(self.fp)
-        print stat.st_size
+        print os.stat(self.eventFile)
         a = self.read()
         if not a:
             raise StopIteration
