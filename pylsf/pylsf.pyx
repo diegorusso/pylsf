@@ -4196,7 +4196,6 @@ cdef class lsb_geteventrec:
         return self
 
     def __next__(self):
-        print os.stat(self.eventFile)
         a = self.read()
         if not a:
             raise StopIteration
