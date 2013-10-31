@@ -5023,10 +5023,6 @@ cdef class lsb_geteventrec:
         self.tail_file = tail_file
         self.position = position
         self.lineNum = 0
-        self.record
-        self.newJob
-        self.startJob
-        self.statusJob
         self.fp
         self.__open()
 
@@ -5073,6 +5069,25 @@ cdef class lsb_geteventrec:
                 askedClusters = []
                 for i from 0 <= i < self.newJob.numAskedClusters:
                     askedClusters.append(self.newJob.askedClusters[i])
+                if self.newJob.srcCluster: srcCluster = self.newJob.srcCluster
+                if self.newJob.dstCluster: dstCluster = self.newJob.dstCluster
+                if self.newJob.flow_id: flow_id = self.newJob.flow_id
+                if self.newJob.subcwd:  subcwd = self.newJob.subcwd
+                #FIXME: outdir is not working properly
+                #if self.newJob.outdir:  outdir = "self.newJob.outdir"
+                outdir = ""
+                dcTmpls = ""
+                if self.newJob.dcTmpls: dcTmpls = self.newJob.dcTmpls
+                if self.newJob.dcVmActions: dcVmActions = self.newJob.dcVmActions
+                network_options = "" 
+                network_nInstance = ""
+                network_nProtocol = ""
+                network_protocols = ""
+                if (&self.newJob.network):
+                    if self.newJob.network.options:   network_options =   self.newJob.network.options
+                    if self.newJob.network.nInstance: network_nInstance = self.newJob.network.nInstance
+                    if self.newJob.network.nProtocol: network_nProtocol = self.newJob.network.nProtocol
+                    if self.newJob.network.protocols: network_protocols = self.newJob.network.protocols
                 return {'type':                 self.record.type,
                         'eventType':            'JOB_NEW',
                         'version':              self.record.version,
@@ -5090,7 +5105,7 @@ cdef class lsb_geteventrec:
                         'sigValue':             self.newJob.sigValue,
                         'chkpntPeriod':         self.newJob.chkpntPeriod,
                         'restartPid':           self.newJob.restartPid,
-                        'rlimits':              {'cpu':      self.newJob.rLimits[0],
+                        'rlimits':              {'cpu':     self.newJob.rLimits[0],
                                                 'file':     self.newJob.rLimits[1],
                                                 'data':     self.newJob.rLimits[2],
                                                 'stack':    self.newJob.rLimits[3],
@@ -5155,28 +5170,37 @@ cdef class lsb_geteventrec:
                         'migThreshold':         self.newJob.migThreshold,
                         'notifyCmd':            self.newJob.notifyCmd,
                         'jobDescription':       self.newJob.jobDescription,
-#                        'submitExt':            self.newJob.submitExt,
-                        'srcCluster':           self.newJob.srcCluster,
+                        #TODO
+                        #'submitExt':            self.newJob.submitExt,
+                        'srcCluster':           srcCluster,
                         'srcJobId':             self.newJob.srcJobId,
-                        'dstCluster':           self.newJob.dstCluster,
+                        'dstCluster':           dstCluster,
                         'dstJobId':             self.newJob.dstJobId,
                         'options4':             self.newJob.options4,
                         'numAskedClusters':     self.newJob.numAskedClusters,
                         'askedClusters':        askedClusters,
-                        'flow_id':              self.newJob.flow_id,
-                        'subcwd':               self.newJob.subcwd,
-                        'outdir':               self.newJob.outdir,
-                        'dcTmpls':              self.newJob.dcTmpls,
-                        'dcVmActions':          self.newJob.dcVmActions,
-                        'network':              {'options':     self.newJob.network.options,
-                                                 'nInstance':   self.newJob.network.nInstance,
-                                                 'nProtocol':   self.newJob.network.nProtocol,
-                                                 'protocols':   self.newJob.network.protocols}}
+                        'flow_id':              flow_id,
+                        'subcwd':               subcwd,
+                        'outdir':               outdir,
+                        'dcTmpls':              dcTmpls,
+                        'dcVmActions':          dcVmActions,
+                        'network':              {'options':     network_options,
+                                                 'nInstance':   network_nInstance,
+                                                 'nProtocol':   network_nProtocol,
+                                                 'protocols':   network_protocols}}
             elif self.record.type == EVENT_JOB_START:
                 self.startJob = &(self.record.eventLog.jobStartLog)
                 execHosts = []
                 for i from 0 <= i < self.startJob.numExHosts:
                     execHosts.append(self.startJob.execHosts[i])
+                if self.startJob.srcCluster: srcCluster = self.startJob.srcCluster
+                if self.startJob.dstCluster: dstCluster = self.startJob.dstCluster
+                if self.startJob.effectiveResReq: effectiveResReq = self.startJob.effectiveResReq
+                networkAlloc_networkID = ""
+                networkAlloc_num_window = ""
+                if self.startJob.networkAlloc:
+                    if self.startJob.networkAlloc.networkID: networkAlloc_networkID = self.startJob.networkAlloc.networkID
+                    if self.startJob.networkAlloc.num_window: networkAlloc_num_window = self.startJob.networkAlloc.num_window
                 return {'type':                     self.record.type,
                         'eventType':                'JOB_START',
                         'version':                  self.record.version,
@@ -5196,14 +5220,14 @@ cdef class lsb_geteventrec:
                         'additionalInfo':           self.startJob.additionalInfo,
                         'duration4PreemptBackfill': self.startJob.duration4PreemptBackfill,
                         'jFlags2':                  self.startJob.jFlags2,
-                        'effectiveResReq':          self.startJob.effectiveResReq,
-                        'srcCluster':               self.startJob.srcCluster,
+                        'effectiveResReq':          effectiveResReq,
+                        'srcCluster':               srcCluster,
                         'srcJobId':                 self.startJob.srcJobId,
-                        'dstCluster':               self.startJob.dstCluster,
+                        'dstCluster':               dstCluster,
                         'dstJobId':                 self.startJob.dstJobId,
                         'num_network':              self.startJob.num_network,
-                        'networkAlloc':             {'networkID':   self.startJob.networkAlloc.networkID,
-                                                     'num_window':  self.startJob.networkAlloc.num_window},
+                        'networkAlloc':             {'networkID':   networkAlloc_networkID,
+                                                     'num_window':  networkAlloc_num_window},
                         #'affinity':                 'TODO',
                         'nextStatusNo':             self.startJob.nextStatusNo}
             elif self.record.type == EVENT_JOB_STATUS:
@@ -5216,6 +5240,8 @@ cdef class lsb_geteventrec:
                          'utime': self.statusJob.hostRusage[i].utime,
                          'stime': self.statusJob.hostRusage[i].stime}
                     hostRusage.append(d)
+                if self.statusJob.srcCluster: srcCluster = self.statusJob.srcCluster
+                if self.statusJob.dstCluster: dstCluster = self.statusJob.dstCluster
                 return {'type':             self.record.type,
                         'eventType':        'JOB_STATUS',
                         'version':          self.record.version,
@@ -5254,14 +5280,16 @@ cdef class lsb_geteventrec:
                         'hostRusage':       hostRusage,
                         'maxMem':           self.statusJob.maxMem,
                         'avgMem':           self.statusJob.avgMem,
-                        'srcCluster':       self.statusJob.srcCluster,
+                        'srcCluster':       srcCluster,
                         'srcJobId':         self.statusJob.srcJobId,
-                        'dstCluster':       self.statusJob.dstCluster,
+                        'dstCluster':       dstCluster,
                         'dstJobId':         self.statusJob.dstJobId,
                         'maskedJStatus':    self.statusJob.maskedJStatus,
                         'nextStatusNo':     self.statusJob.nextStatusNo}
             elif self.record.type == EVENT_JOB_SWITCH:
                 self.switchJob = &(self.record.eventLog.jobSwitchLog)
+                if self.switchJob.srcCluster: srcCluster = self.switchJob.srcCluster
+                if self.switchJob.dstCluster: dstCluster = self.switchJob.dstCluster
                 return {'type':                self.record.type,
                         'eventType':           'JOB_SWITCH',
                         'version':             self.record.version,
@@ -5271,9 +5299,9 @@ cdef class lsb_geteventrec:
                         'userName':            self.switchJob.userName,
                         'idx':                 self.switchJob.idx,
                         'queue':               self.switchJob.queue,
-                        'srcCluster':          self.switchJob.srcCluster,
+                        'srcCluster':          srcCluster,
                         'srcJobId':            self.switchJob.srcJobId,
-                        'dstCluster':          self.switchJob.dstCluster,
+                        'dstCluster':          dstCluster,
                         'dstJobId':            self.switchJob.dstJobId,
                         'rmtJobCtrlStage':     self.switchJob.rmtJobCtrlStage,
                         'numRmtCtrlResult':    self.switchJob.numRmtCtrlResult}
@@ -5353,6 +5381,26 @@ cdef class lsb_geteventrec:
                          'utime': self.finishJob.hostRusage[i].utime,
                          'stime': self.finishJob.hostRusage[i].stime}
                     hostRusage.append(d)
+                if self.finishJob.effectiveResReq: effectiveResReq = self.finishJob.effectiveResReq
+                if self.finishJob.srcCluster: srcCluster = self.finishJob.srcCluster
+                #FIXME: now working
+                #if self.finishJob.dstCluster: dstCluster = self.finishJob.dstCluster
+                dstCluster = ""
+                #FIXME: not working
+                #if self.finishJob.flow_id: flow_id = self.finishJob.flow_id
+                flow_id = ""
+                #FIXME: subcwd not working properly
+                #if self.finishJob.subcwd:  subcwd = self.finishJob.subcwd
+                subcwd = ""
+                #FIXME: outdir is not working properly
+                #if self.newJob.outdir:  outdir = "self.newJob.outdir"
+                outdir = ""
+                #FIXME: now working
+                networkAlloc_networkID = ""
+                networkAlloc_num_window = ""
+                #if self.finishJob.networkAlloc:
+                #    if self.finishJob.networkAlloc.networkID: networkAlloc_networkID = self.finishJob.networkAlloc.networkID
+                #    if self.finishJob.networkAlloc.num_window: networkAlloc_num_window = self.finishJob.networkAlloc.num_window
                 return {'type':                 self.record.type,
                         'eventType':            'JOB_FINISH',
                         'version':              self.record.version,
@@ -5437,23 +5485,23 @@ cdef class lsb_geteventrec:
                         'numhRusages':          self.finishJob.numhRusages,
                         'hostRusage':           hostRusage,
                         'avgMem':               self.finishJob.avgMem,
-                        'effectiveResReq':      self.finishJob.effectiveResReq,
-                        'srcCluster':           self.finishJob.srcCluster,
+                        'effectiveResReq':      effectiveResReq,
+                        'srcCluster':           srcCluster,
                         'srcJobId':             self.finishJob.srcJobId,
-                        'dstCluster':           self.finishJob.dstCluster,
+                        'dstCluster':           dstCluster,
                         'dstJobId':             self.finishJob.dstJobId,
                         'forwardTime':          self.finishJob.forwardTime,
                         'runLimit':             self.finishJob.runLimit,
                         'options3':             self.finishJob.options3,
-                        'flow_id':              self.finishJob.flow_id,
+                        'flow_id':              flow_id,
                         'acJobWaitTime':        self.finishJob.acJobWaitTime,
                         'totalProvisionTime':   self.finishJob.totalProvisionTime,
-                        'outdir':               self.finishJob.outdir,
+                        'outdir':               outdir,
                         'runTime':              self.finishJob.runTime,
-                        'subcwd':               self.finishJob.subcwd,
+                        'subcwd':               subcwd,
                         'num_network':          self.finishJob.num_network,
-                        'networkAlloc':         {'networkID':   self.finishJob.networkAlloc.networkID,
-                                                 'num_window':  self.finishJob.networkAlloc.num_window}}
+                        'networkAlloc':         {'networkID':   networkAlloc_networkID,
+                                                 'num_window':  networkAlloc_num_window}}
                         #'affinity':             'TODO'}
             elif self.record.type == EVENT_LOAD_INDEX:
                 return [self.record.type,
@@ -5505,6 +5553,8 @@ cdef class lsb_geteventrec:
                         "JOB_MODIFY"]
             elif self.record.type == EVENT_JOB_SIGNAL:
                 self.signalJob = &(self.record.eventLog.signalLog)
+                if self.signalJob.srcCluster: srcCluster = self.signalJob.srcCluster
+                if self.signalJob.dstCluster: dstCluster = self.signalJob.dstCluster
                 return {'type':            self.record.type,
                         'eventType':       'JOB_SIGNAL',
                         'version':         self.record.version,
@@ -5515,9 +5565,9 @@ cdef class lsb_geteventrec:
                         'runCount':        self.signalJob.runCount,
                         'idx':             self.signalJob.idx,
                         'userName':        self.signalJob.userName,
-                        'srcCluster':      self.signalJob.srcCluster,
+                        'srcCluster':      srcCluster,
                         'srcJobId':        self.signalJob.srcJobId,
-                        'dstCluster':      self.signalJob.dstCluster,
+                        'dstCluster':      dstCluster,
                         'dstJobId':        self.signalJob.dstJobId}
             elif self.record.type == EVENT_CAL_NEW:
                 self.calendarLog = &(self.record.eventLog.calendarLog)
@@ -5838,6 +5888,8 @@ cdef class lsb_geteventrec:
                 if self.jobMod2.userGroup: userGroup = self.jobMod2.userGroup
                 if self.jobMod2.exceptList: exceptList = self.jobMod2.exceptList
                 if self.jobMod2.userPriority: userPriority = self.jobMod2.userPriority
+                if self.jobMod2.srcCluster: srcCluster = self.jobMod2.srcCluster
+                if self.jobMod2.dstCluster: dstCluster = self.jobMod2.dstCluster
                 askedClusters = []
                 for i from 0 <= i < self.jobMod2.numAskedClusters:
                     askedClusters.append(self.jobMod2.askedClusters[i])
@@ -5921,13 +5973,13 @@ cdef class lsb_geteventrec:
                         'migThreshold':      self.jobMod2.migThreshold,
                         'notifyCmd':         self.jobMod2.notifyCmd,
                         'jobDescription':    self.jobMod2.jobDescription,
-                        'srcCluster':        self.jobMod2.srcCluster,
+                        'srcCluster':        srcCluster,
                         'srcJobId':          self.jobMod2.srcJobId,
-                        'dstCluster':        self.jobMod2.dstCluster,
-                        'dstJobId':          self.jobmod2.dstJobId,
-                        'options4':          self.jobmod2.options4,
-                        'delOptions4':       self.jobmod2.delOptions4,
-                        'numAskedClusters':  self.jobmod2.numAskedClusters,
+                        'dstCluster':        dstCluster,
+                        'dstJobId':          self.jobMod2.dstJobId,
+                        'options4':          self.jobMod2.options4,
+                        'delOptions4':       self.jobMod2.delOptions4,
+                        'numAskedClusters':  self.jobMod2.numAskedClusters,
                         'askedClusters':     askedClusters,}
             elif self.record.type == EVENT_JGRP_STATUS:
                 self.jgrpLog = &(self.record.eventLog.jgrpStatusLog)
